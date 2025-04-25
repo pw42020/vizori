@@ -19,6 +19,11 @@ setuptools = "^78.1.0"
 delta-spark = "^3.3.0"
 boto3 = "^1.37.37"
 botocore = "^1.37.37"
+sqlalchemy = "^2.0.40"
+ipykernel = "^6.29.5"
+langchain = "^0.3.24"
+langchain-openai = "^0.3.14"
+langgraph = "^0.3.34"
 
 
 [build-system]
