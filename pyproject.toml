@@ -26,6 +26,7 @@ langchain = "^0.3.24"
 langchain-openai = "^0.3.14"
 langgraph = "^0.3.34"
 pre-commit = "^4.2.0"
+grandalf = "^0.8"
 
 
 [build-system]
