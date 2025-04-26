@@ -4,6 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Patrick Walsh <patrick.walsh@artemislab.org>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -24,6 +25,7 @@ ipykernel = "^6.29.5"
 langchain = "^0.3.24"
 langchain-openai = "^0.3.14"
 langgraph = "^0.3.34"
+pre-commit = "^4.2.0"
 
 
 [build-system]
