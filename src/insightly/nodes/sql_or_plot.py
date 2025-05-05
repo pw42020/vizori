@@ -16,6 +16,7 @@ from insightly.classes import (
     PlotType,
     AgentState,
     NodeBase,
+    T,
 )
 
 
@@ -45,11 +46,12 @@ class SQLOrPlotNode(NodeBase):
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, OutputClass: type[T]) -> None:
         """
-        Initialize the CheckIfSQLOrPlot class.
+        Initialize the RelevanceChecker class.
+
         """
-        super().__init__()
+        super().__init__(OutputClass=OutputClass)
 
     def init_query(self, state: AgentState, config: RunnableConfig) -> str:
         """Check if the question is meant as an SQL query or a plot.

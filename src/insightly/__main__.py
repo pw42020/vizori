@@ -41,10 +41,10 @@ def main() -> None:
     # table = insightly.retrieve_table("db.foods")
     # print(table.df())
     logger = logging.getLogger("Insightly")
-    relevance_checker = CheckRelevanceNode[CheckRelevance]()
-    sql_converter = SQLConverterNode[ConvertToSQL]()
-    sql_or_plot_checker = SQLOrPlotNode[CheckIfSQLOrPlotReturn]()
-    execute_sql = ExecuteSQL[duckdb.DuckDBPyRelation]()
+    relevance_checker = CheckRelevanceNode(CheckRelevance)
+    sql_converter = SQLConverterNode(ConvertToSQL)
+    sql_or_plot_checker = SQLOrPlotNode(CheckIfSQLOrPlotReturn)
+    execute_sql = ExecuteSQL(duckdb.DuckDBPyRelation)
 
     workflow = StateGraph(AgentState, ConfigSchema)
     workflow.add_node(State.CHECK_RELEVANCE, relevance_checker.run)
@@ -70,6 +70,8 @@ def main() -> None:
     result: dict[str, dict[str, Any]] = app.invoke(
         {"question": question, "attempts": 0}, config=dict(insightly=insightly)
     )
+
+    print(result)
 
 
 if __name__ == "__main__":

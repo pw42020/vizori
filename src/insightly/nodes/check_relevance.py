@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 
-from insightly.classes import AgentState, NodeBase
+from insightly.classes import AgentState, NodeBase, T
 
 
 class CheckRelevance(BaseModel):
@@ -40,12 +40,12 @@ class CheckRelevanceNode(NodeBase):
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, OutputClass: type[T]) -> None:
         """
         Initialize the RelevanceChecker class.
 
         """
-        super().__init__()
+        super().__init__(OutputClass=OutputClass)
 
     def init_query(self, state: AgentState, config: RunnableConfig) -> AgentState:
         """

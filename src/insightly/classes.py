@@ -109,14 +109,20 @@ class AgentState(TypedDict):
 
 # abstract base class that initializes a run() method and requires insightly() object
 # initialize NodeBase for abstract methods and generic type
-class NodeBase(ABC, Generic[T]):
+class NodeBase(ABC):
     """Abstract base class for Insightly classes.
     This class defines the interface for Insightly classes and requires the implementation of the run() method.
     """
 
-    def run_chatgpt(
-        self, question: str, system: str, ClassObject: BaseModel
-    ) -> BaseModel:
+    OutputClass: BaseModel  # generic type for the class
+
+    def __init__(self, OutputClass: BaseModel) -> None:
+        """
+        Initialize the NodeBase class.
+        """
+        self.OutputClass = OutputClass
+
+    def run_chatgpt(self, question: str, system: str) -> BaseModel:
         convert_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
@@ -124,7 +130,7 @@ class NodeBase(ABC, Generic[T]):
             ]
         )
         llm = ChatOpenAI(temperature=0)
-        structured_llm = llm.with_structured_output(ClassObject)
+        structured_llm = llm.with_structured_output(self.OutputClass)
         sql_generator = convert_prompt | structured_llm
         result = sql_generator.invoke({})
         return result
@@ -148,7 +154,6 @@ class NodeBase(ABC, Generic[T]):
         result: T = self.run_chatgpt(
             question=state["question"],
             system=system,
-            ClassObject=T,
         )
         return self.post_query(result, state, config)
 

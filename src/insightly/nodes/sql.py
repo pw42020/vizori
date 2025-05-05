@@ -5,11 +5,9 @@ import logging
 import duckdb
 from pydantic import BaseModel, Field
 from pydantic import Field, BaseModel
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 
-from insightly.classes import AgentState, NodeBase
+from insightly.classes import AgentState, NodeBase, T
 
 
 class ConvertToSQL(BaseModel):
@@ -32,12 +30,12 @@ class SQLConverterNode(NodeBase):
     based on the provided database schema.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, OutputClass: type[T]) -> None:
         """
-        Initialize the SQLConverter class.
+        Initialize the RelevanceChecker class.
 
         """
-        super().__init__()
+        super().__init__(OutputClass=OutputClass)
 
     def init_query(self, state: AgentState, config: RunnableConfig):
         """
@@ -73,7 +71,7 @@ For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
 """.format(
             schema=schema, db_name=config["insightly"].db_name
         )
-        return schema
+        return system
 
     def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
         """
@@ -104,12 +102,12 @@ class ExecuteSQL(NodeBase):
     This class is used to execute SQL queries on the database and retrieve the results.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, OutputClass: type[T]) -> None:
         """
-        Initialize the ExecuteSQL class.
+        Initialize the RelevanceChecker class.
 
         """
-        super().__init__()
+        super().__init__(OutputClass=OutputClass)
 
     def init_query(self, state: AgentState, config: RunnableConfig) -> str:
         """
