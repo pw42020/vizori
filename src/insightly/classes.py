@@ -106,10 +106,17 @@ class AgentState(TypedDict):
     attempts: int
     relevance: str
 
+class Node(ABC):
+    """Abstract base class for Insightly"""
+
+    @abstractmethod
+    def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
+        """Run the node to get an output and an AgentState."""
+        pass    
 
 # abstract base class that initializes a run() method and requires insightly() object
 # initialize NodeBase for abstract methods and generic type
-class NodeBase(ABC):
+class ChatGPTNodeBase(Node, ABC):
     """Abstract base class for Insightly classes.
     This class defines the interface for Insightly classes and requires the implementation of the run() method.
     """

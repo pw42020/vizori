@@ -1,5 +1,6 @@
 import logging
-from typing import TypedDict, Any
+from typing import Any
+from pathlib import Path
 
 import duckdb
 from dotenv import load_dotenv
@@ -18,6 +19,8 @@ load_dotenv()
 
 logger = logging.getLogger("Insightly")
 
+ROOT_PATH: str = str(Path(__file__).resolve()).split("src")[0]
+
 
 def relevance_router(state: AgentState) -> State:
     print(state)
@@ -32,7 +35,7 @@ def main() -> None:
     Main function to demonstrate the usage of the Insightly class.
     """
 
-    path_to_csv: str = "/Users/patrickwalsh/dev/dataly-backend/data/titanic/train.csv"
+    path_to_csv: str = f"{ROOT_PATH}/data/titanic/train.csv"
     insightly: Insightly = get_singleton()
     insightly.read_csv_to_duckdb(path_to_csv, "titanic")
     # table = insightly.retrieve_table("db.foods")
@@ -41,7 +44,7 @@ def main() -> None:
     relevance_checker = CheckRelevanceNode(CheckRelevance)
     sql_converter = SQLConverterNode(ConvertToSQL)
     sql_or_plot_checker = SQLOrPlotNode(CheckIfSQLOrPlotReturn)
-    execute_sql = ExecuteSQL(duckdb.DuckDBPyRelation)
+    execute_sql = ExecuteSQL()
 
     workflow = StateGraph(AgentState)
     workflow.add_node(State.CHECK_RELEVANCE, relevance_checker.run)

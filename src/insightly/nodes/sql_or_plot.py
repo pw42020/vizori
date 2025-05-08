@@ -15,7 +15,7 @@ from insightly.classes import (
     QueryType,
     PlotType,
     AgentState,
-    NodeBase,
+    ChatGPTNodeBase,
     T,
 )
 from insightly.utils import get_singleton
@@ -40,7 +40,7 @@ class CheckIfSQLOrPlotReturn(BaseModel):
     )
 
 
-class SQLOrPlotNode(NodeBase):
+class SQLOrPlotNode(ChatGPTNodeBase):
     """Class to check if the question is meant as an SQL query or a plot.
 
     This class is used to determine if a question is related to data retrieval

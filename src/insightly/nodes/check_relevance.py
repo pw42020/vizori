@@ -7,11 +7,9 @@ import logging
 
 from pydantic import BaseModel, Field
 from pydantic import Field, BaseModel
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 
-from insightly.classes import AgentState, NodeBase, T
+from insightly.classes import AgentState, ChatGPTNodeBase, T
 from insightly.utils import get_singleton
 
 
@@ -29,7 +27,7 @@ class CheckRelevance(BaseModel):
     )
 
 
-class CheckRelevanceNode(NodeBase):
+class CheckRelevanceNode(ChatGPTNodeBase):
     """Class to check the relevance of a question to the database schema.
     This class is used to determine if a question is related to the database schema
     and is used in the Insightly class.

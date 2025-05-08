@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from pydantic import Field, BaseModel
 from langchain_core.runnables.config import RunnableConfig
 
-from insightly.classes import AgentState, NodeBase, T
+from insightly.classes import AgentState, ChatGPTNodeBase, Node, T
 from insightly.utils import get_singleton
 
 
@@ -25,7 +25,7 @@ class ConvertToSQL(BaseModel):
     )
 
 
-class SQLConverterNode(NodeBase):
+class SQLConverterNode(ChatGPTNodeBase):
     """Class to convert natural language questions to SQL queries.
     This class is used to convert natural language questions into SQL queries
     based on the provided database schema.
@@ -74,28 +74,6 @@ For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
         )
         return system
 
-    def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
-        """
-        Convert natural language questions to SQL queries.
-        This function uses the ChatOpenAI model to convert the question into an SQL query
-        based on the provided database schema.
-
-        Parameters
-        ----------
-        state : AgentState
-            The current state of the agent.
-        config : RunnableConfig
-            The configuration for the runnable.
-
-        Returns
-        -------
-        AgentState
-            The updated state of the agent with the SQL query.
-        """
-        system = self.init_query(state, config)
-        result: ConvertToSQL = self.run_chatgpt(state["question"], system, ConvertToSQL)
-        return state
-
     def post_query(
         self, result: ConvertToSQL, state: AgentState, config: RunnableConfig
     ) -> AgentState:
@@ -119,17 +97,10 @@ For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
         return state
 
 
-class ExecuteSQL(NodeBase):
+class ExecuteSQL(Node):
     """Class to execute SQL queries.
     This class is used to execute SQL queries on the database and retrieve the results.
     """
-
-    def __init__(self, OutputClass: type[T]) -> None:
-        """
-        Initialize the RelevanceChecker class.
-
-        """
-        super().__init__(OutputClass=OutputClass)
 
     def init_query(self, state: AgentState, config: RunnableConfig) -> str:
         """
