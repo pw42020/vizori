@@ -18,6 +18,7 @@ from insightly.classes import (
     NodeBase,
     T,
 )
+from insightly.utils import get_singleton
 
 
 class CheckIfSQLOrPlotReturn(BaseModel):
@@ -70,7 +71,7 @@ class SQLOrPlotNode(NodeBase):
         """
         question = state["question"]
         print(f"Checking if the question requires an SQL query or a plot: {question}")
-        schema = config["insightly"].get_schema()
+        schema = get_singleton().get_schema()
         system = """
 You are an assistant that determines whether a given question requires an SQL query or a plot based on the following schema:
 {schema}

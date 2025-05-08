@@ -12,6 +12,7 @@ from insightly.nodes.sql_or_plot import SQLOrPlotNode, CheckIfSQLOrPlotReturn
 from insightly.nodes.sql import ExecuteSQL
 from insightly.classes import AgentState
 from insightly.nodes.state import State
+from insightly.utils import get_singleton
 
 load_dotenv()
 
@@ -19,14 +20,11 @@ logger = logging.getLogger("Insightly")
 
 
 def relevance_router(state: AgentState) -> State:
+    print(state)
     if state["relevance"] == "relevant":
         return State.CHECK_IF_SQL_OR_PLOT
     else:
         return State.GENERATE_FUNNY_RESPONSE
-
-
-class ConfigSchema(TypedDict):
-    insightly: Insightly
 
 
 def main() -> None:
@@ -35,8 +33,7 @@ def main() -> None:
     """
 
     path_to_csv: str = "/Users/patrickwalsh/dev/dataly-backend/data/titanic/train.csv"
-
-    insightly = Insightly()
+    insightly: Insightly = get_singleton()
     insightly.read_csv_to_duckdb(path_to_csv, "titanic")
     # table = insightly.retrieve_table("db.foods")
     # print(table.df())
@@ -46,7 +43,7 @@ def main() -> None:
     sql_or_plot_checker = SQLOrPlotNode(CheckIfSQLOrPlotReturn)
     execute_sql = ExecuteSQL(duckdb.DuckDBPyRelation)
 
-    workflow = StateGraph(AgentState, ConfigSchema)
+    workflow = StateGraph(AgentState)
     workflow.add_node(State.CHECK_RELEVANCE, relevance_checker.run)
     workflow.add_node(State.CONVERT_NL_TO_SQL, sql_converter.run)
     workflow.add_node(State.EXECUTE_SQL, execute_sql.run)
@@ -68,7 +65,7 @@ def main() -> None:
 
     question = "What is the average age of passengers who survived?"
     result: dict[str, dict[str, Any]] = app.invoke(
-        {"question": question, "attempts": 0}, config=dict(insightly=insightly)
+        {"question": question, "attempts": 0}
     )
 
     print(result)

@@ -12,6 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 
 from insightly.classes import AgentState, NodeBase, T
+from insightly.utils import get_singleton
 
 
 class CheckRelevance(BaseModel):
@@ -65,7 +66,7 @@ class CheckRelevanceNode(NodeBase):
         """
         logger = logging.getLogger("Insightly")
         question: str = state["question"]
-        schema: str = config["insightly"].get_schema()
+        schema: str = get_singleton().get_schema()
         logger.info(f"Checking relevance of the question: {question}")
         system: str = (
             """You are an assistant that determines whether a given question is related to the following database schema.
@@ -82,7 +83,7 @@ Respond with only "relevant" or "not_relevant".
 
     def post_query(
         self, result: CheckRelevance, state: AgentState, config: RunnableConfig
-    ):
+    ) -> AgentState:
         """add relevance result to the state
 
         Parameters
@@ -99,7 +100,5 @@ Respond with only "relevant" or "not_relevant".
         AgentState
             The updated state of the agent with the relevance information.
         """
-        logger = logging.getLogger("Insightly")
         state["relevance"] = result.relevance
-        logger.info(f"Relevance determined: {state['relevance']}")
         return state

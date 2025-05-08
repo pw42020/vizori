@@ -8,6 +8,7 @@ from pydantic import Field, BaseModel
 from langchain_core.runnables.config import RunnableConfig
 
 from insightly.classes import AgentState, NodeBase, T
+from insightly.utils import get_singleton
 
 
 class ConvertToSQL(BaseModel):
@@ -58,7 +59,7 @@ class SQLConverterNode(NodeBase):
         logger = logging.getLogger("Insightly")
         logger.info("Convert natural language to SQL")
         question = state["question"]
-        schema = config["insightly"].get_schema()
+        schema = get_singleton().get_schema()
         logger.info(f"Converting question to SQL: {question}")
         system = """You are an assistant that converts natural language questions into SQL queries based on the following schema:
 database name: {db_name}
@@ -69,7 +70,7 @@ Provide only the SQL query without any explanations. Alias columns appropriately
 
 For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
 """.format(
-            schema=schema, db_name=config["insightly"].db_name
+            schema=schema, db_name=get_singleton().db_name
         )
         return system
 
@@ -93,6 +94,27 @@ For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
         """
         system = self.init_query(state, config)
         result: ConvertToSQL = self.run_chatgpt(state["question"], system, ConvertToSQL)
+        return state
+
+    def post_query(
+        self, result: ConvertToSQL, state: AgentState, config: RunnableConfig
+    ) -> AgentState:
+        """Post query to get an output and an AgentState.
+
+        Parameters
+        ----------
+        result : ConvertToSQL
+            The result of the SQL conversion.
+        state : AgentState
+            The current state of the agent.
+        config : RunnableConfig
+            The configuration for the runnable.
+
+        Returns
+        -------
+        AgentState
+            The updated state of the agent with the SQL query.
+        """
         state["sql_query_info"]["sql_query"] = result.sql_query
         return state
 
@@ -143,7 +165,7 @@ class ExecuteSQL(NodeBase):
             state["sql_query_info"]["query_result"] = dataframe
             print("SUCCESSFUL EXECUTION OF SQL QUERY")
             # duckdb add the new df to the database
-            config["insightly"].add_df_to_duckdb(
+            get_singleton().add_df_to_duckdb(
                 dataframe, state["sql_query_info"]["table_name"]
             )
             state["sql_query_info"]["sql_error"] = False
@@ -172,9 +194,7 @@ class ExecuteSQL(NodeBase):
         """
         sql_query: str = self.init_query(state, config)
         try:
-            result: duckdb.DuckDBPyRelation = config["insightly"].execute_query(
-                sql_query
-            )
+            result: duckdb.DuckDBPyRelation = get_singleton().execute_query(sql_query)
             return self.post_query(result, state, config)
         except Exception as e:
             state["sql_query_info"][
