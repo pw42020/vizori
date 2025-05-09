@@ -15,3 +15,5 @@ def get_singleton() -> Insightly:
         The singleton instance of the Insightly class.
     """
     return insightly
+
+MAX_NUM_ATTEMPTS: int = 3

@@ -1,8 +1,10 @@
 """Insightly classes for the Insightly agent."""
 
 from enum import Enum
-from typing import TypedDict, Optional, Generic, TypeVar
+from typing import TypedDict, Optional, TypeVar, Any
 from abc import ABC, abstractmethod
+
+import pandas as pd
 from pydantic import BaseModel
 from langchain_core.runnables.config import RunnableConfig
 from langchain_openai import ChatOpenAI
@@ -45,8 +47,10 @@ class SqlQueryInfo(TypedDict):
     ----------
     sql_query : str
         The SQL query that was executed.
-    query_result : str
-        The result of the SQL query.
+    query_result : pd.DataFrame
+        The result of the SQL query. (dataframe)
+    success_response : str
+        The success response from the SQL query. (natural languages)
     table_name : str
         The name of the table that was queried.
     query_rows : list
@@ -56,7 +60,8 @@ class SqlQueryInfo(TypedDict):
     """
 
     sql_query: str
-    query_result: str
+    query_result: pd.DataFrame
+    success_response: str
     table_name: str
     query_rows: list
     sql_error: bool
@@ -110,9 +115,27 @@ class Node(ABC):
     """Abstract base class for Insightly"""
 
     @abstractmethod
-    def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
+    def run(self, state: AgentState, config: RunnableConfig) -> Any:
         """Run the node to get an output and an AgentState."""
         pass    
+
+class ConditionalNode(Node):
+    """Abstract base class for conditional nodes."""
+
+    @abstractmethod
+    def run(self, state: AgentState) -> str:
+        """Run the conditional node to get an output and an AgentState.
+        
+        Parameters
+        ----------
+        state : AgentState
+            The state of the agent containing the question and other information.
+        
+        Returns
+        -------
+        str
+            The next state the agent should transition to."""
+        pass
 
 # abstract base class that initializes a run() method and requires insightly() object
 # initialize NodeBase for abstract methods and generic type
@@ -133,7 +156,7 @@ class ChatGPTNodeBase(Node, ABC):
         convert_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", system),
-                ("human", f"Question: {question}"),
+                ("human", question),
             ]
         )
         llm = ChatOpenAI(temperature=0)

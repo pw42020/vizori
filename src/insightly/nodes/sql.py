@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field
 from pydantic import Field, BaseModel
 from langchain_core.runnables.config import RunnableConfig
 
-from insightly.classes import AgentState, ChatGPTNodeBase, Node, T
+from insightly.classes import AgentState, ChatGPTNodeBase, Node, T, PlotType
+from insightly.plotting import BarPlot, ScatterPlot
 from insightly.utils import get_singleton
 
 
@@ -173,4 +174,156 @@ class ExecuteSQL(Node):
             ] = f"Error executing SQL query: {str(e)}"
             state["sql_query_info"]["sql_error"] = True
             print(f"Error executing SQL query: {str(e)}")
+        return state
+
+class Columns(BaseModel):
+    """Class to represent the columns for a scatter plot.
+    
+    Attributes
+    ----------
+    columns: list[str]
+        The columns to be used in the scatter plot.
+    """
+    columns: list[str] = Field(
+        description="The columns to be used in the scatter plot."
+    )
+
+class GetColumnsNode(ChatGPTNodeBase):
+    """Class to get the columns for any plot
+    
+    This class is used to get the columns for a scatter plot based on the provided database schema.
+    """
+    def init_query(self, state: AgentState, config: RunnableConfig) -> str:
+        """
+        Initialize the columns for the scatter plot.
+        
+        This function retrieves the question and schema from the state and prepares
+        the system prompt for the ChatOpenAI model to get the columns for the scatter plot.
+        
+        Parameters
+        ----------
+        state : AgentState
+            The current state of the agent.
+        config : RunnableConfig
+            The configuration for the runnable.
+        
+        Returns
+        -------
+        str
+            The system prompt to be used for the ChatOpenAI model.
+        """
+        logger = logging.getLogger("Insightly")
+        question = state["question"]
+        schema = get_singleton().get_schema(table_name=state['sql_query_info']['table_name'])
+        logger.debug(f"Getting columns: {question}")
+        logger.debug("current schema: ", schema)
+        system = """You are an assistant that chooses the appropriate columns for a scatter plot based on the following schema:
+
+{schema}
+
+Provide only the columns to be used in the scatter plot without any explanations.
+The columns should be suitable for a scatter plot, typically two numerical columns.
+Only return the names of the columns with no SQL, in the order they should be used in the plot (i.e. x1, y1, x2, y2).
+""".format(schema=schema)
+        return system
+
+    def post_query(
+        self, result: Columns, state: AgentState, config: RunnableConfig
+    ) -> AgentState:
+        """turn the columns into a plot, add the plot and columns to the sstate
+        and return the state
+
+        Parameters
+        ----------
+        result : Columns
+            The result of the column selection.
+        state : AgentState
+            The current state of the agent.
+        config : RunnableConfig
+            The configuration for the runnable.
+        
+        Returns
+        -------
+        AgentState
+            The updated state of the agent with the selected columns and plot.
+        """
+        logger = logging.getLogger("Insightly")
+        state["plot_query_info"]["columns"] = result.columns
+        # create a plot dependent on the type of plot type passed earlier
+        if state["plot_query_info"]["plot_type"] == PlotType.SCATTER:
+            scatter_plot = ScatterPlot()
+            state["plot_query_info"]["result"] = scatter_plot.generate(state["sql_query_info"]["query_result"],
+                                                                    state["plot_query_info"]["columns"])
+        elif state["plot_query_info"]["plot_type"] == PlotType.BAR:
+            bar_plot = BarPlot()
+            state["plot_query_info"]["result"] = bar_plot.generate(state["sql_query_info"]["query_result"],
+                                                                state["plot_query_info"]["columns"])
+        logger.info(f"Selected columns for scatter plot: {state['plot_query_info']['columns']}")
+        return state
+
+class HumanResponse(BaseModel):
+    """The final response once the SQL query has been confirmed a success
+    
+    Attributes
+    ----------
+    response: str
+        The human response to the question.
+    """
+    response: str = Field(description="The human response to the question.")
+
+class HumanResponseNode(ChatGPTNodeBase):
+
+    def __init__(self, OutputClass: type[T]) -> None:
+        """
+        Initialize the HumanResponseNode class.
+        
+        This class is used to get a human response to
+        the SQL query result and provide a normal response based on the question.
+        """
+        super().__init__(OutputClass=OutputClass)
+
+    def init_query(self, state: AgentState, config: RunnableConfig):
+        """initialize the query to generate a response understandable by a human
+        
+        Parameters
+        ----------
+        state : AgentState
+            The current state of the agent.
+        config : RunnableConfig
+            The configuration for the runnable.
+        
+        Returns
+        -------
+        str
+            The system prompt to be used for the ChatOpenAI model.
+        """
+        logger = logging.getLogger("Insightly")
+        question = state["question"]
+        answer: str = state["sql_query_info"]["query_result"]
+        logger.debug(f"Waiting for human response to the question: {question}")
+        system = """You are an assistant that retrieves the result of a question asked
+    by a human and provides a normal response based on the question. The answer is {answer}""".format(answer=answer)
+        return system
+
+    def post_query(
+        self, result: HumanResponse, state: AgentState, config: RunnableConfig
+    ) -> AgentState:
+        """Post query to get an output and an AgentState.
+
+        Parameters
+        ----------
+        result : HumanResponse
+            The result of the human response.
+        state : AgentState
+            The current state of the agent.
+        config : RunnableConfig
+            The configuration for the runnable.
+        
+        Returns
+        -------
+        AgentState
+            The updated state of the agent with the human response.
+        """
+        state["sql_query_info"]["success_response"] = result.response
+        print(f"Received human response: {state['sql_query_info']['success_response']}")
         return state
