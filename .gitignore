@@ -9,6 +9,8 @@ __pycache__/
 
 workflow.txt
 
+plots/
+
 jars
 *.db
 
