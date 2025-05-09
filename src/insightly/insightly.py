@@ -1,12 +1,15 @@
+from __future__ import annotations
 from typing import Any, Dict, Optional
 from typing_extensions import TypedDict
 from dataclasses import dataclass, field
+
+from langgraph.graph import StateGraph
+from insightly.classes import AgentState
 
 import pandas as pd
 import duckdb
 
 
-@dataclass
 class Insightly:
     """
     A class to represent a connection to a DuckDB database.
@@ -17,9 +20,25 @@ class Insightly:
         The DuckDB connection object.
     """
 
-    conn: duckdb.DuckDBPyConnection = field(default_factory=duckdb.connect)
-    db_name: Optional[str] = field(default="memory")
-    tables: list[str] = field(default_factory=list)
+    conn: duckdb.DuckDBPyConnection = None
+    db_name: Optional[str] = None
+    tables: list[str] = []
+    _instance: Optional[Insightly] = None
+    
+    def __init__(self) -> None:
+        self.conn = duckdb.connect(database=":memory:")
+        self.db_name = "memory"
+        self.tables = []
+        self._instance = None
+
+    def __new__(cls):
+        """
+        Create a new instance of the Insightly class if it doesn't already exist.
+        Used for singleton design pattern across different nodes.
+        """
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     # reading the CSV file into a DuckDB table
     def read_csv_to_duckdb(self, path_to_csv: str, table_name: str = "table") -> None:

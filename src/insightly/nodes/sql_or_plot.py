@@ -18,7 +18,7 @@ from insightly.classes import (
     ChatGPTNodeBase,
     T,
 )
-from insightly.utils import get_singleton
+from insightly.insightly import Insightly
 
 
 class CheckIfSQLOrPlotReturn(BaseModel):
@@ -71,7 +71,7 @@ class SQLOrPlotNode(ChatGPTNodeBase):
         """
         question = state["question"]
         print(f"Checking if the question requires an SQL query or a plot: {question}")
-        schema = get_singleton().get_schema()
+        schema = Insightly().get_schema()
         system = """
 You are an assistant that determines whether a given question requires an SQL query or a plot based on the following schema:
 {schema}
@@ -104,7 +104,7 @@ If the question is related to data visualization, choose one of the following pl
         """
         logger = logging.getLogger("Insightly")
         state["meant_as_query"] = result.meant_as_query == QueryType.SQL
-        logger.info("MEANT AS QUERY: ", state["meant_as_query"])
+        logger.info("MEANT AS QUERY: {}".format(state["meant_as_query"]))
         # generate a random table name for the SQL query and the typed dictionaries
         state["sql_query_info"] = SqlQueryInfo(
             sql_query="",

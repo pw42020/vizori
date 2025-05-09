@@ -10,7 +10,7 @@ from pydantic import Field, BaseModel
 from langchain_core.runnables.config import RunnableConfig
 
 from insightly.classes import AgentState, ChatGPTNodeBase, T
-from insightly.utils import get_singleton
+from insightly.insightly import Insightly
 
 
 class CheckRelevance(BaseModel):
@@ -64,7 +64,7 @@ class CheckRelevanceNode(ChatGPTNodeBase):
         """
         logger = logging.getLogger("Insightly")
         question: str = state["question"]
-        schema: str = get_singleton().get_schema()
+        schema: str = Insightly().get_schema()
         logger.info(f"Checking relevance of the question: {question}")
         system: str = (
             """You are an assistant that determines whether a given question is related to the following database schema.

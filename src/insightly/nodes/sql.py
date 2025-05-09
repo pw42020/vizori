@@ -9,8 +9,7 @@ from langchain_core.runnables.config import RunnableConfig
 
 from insightly.classes import AgentState, ChatGPTNodeBase, Node, T, PlotType
 from insightly.plotting import BarPlot, ScatterPlot
-from insightly.utils import get_singleton
-
+from insightly.insightly import Insightly
 
 class ConvertToSQL(BaseModel):
     """Converts natural language questions to SQL queries.
@@ -60,7 +59,7 @@ class SQLConverterNode(ChatGPTNodeBase):
         logger = logging.getLogger("Insightly")
         logger.info("Convert natural language to SQL")
         question = state["question"]
-        schema = get_singleton().get_schema()
+        schema = Insightly().get_schema()
         logger.info(f"Converting question to SQL: {question}")
         system = """You are an assistant that converts natural language questions into SQL queries based on the following schema:
 database name: {db_name}
@@ -71,7 +70,7 @@ Provide only the SQL query without any explanations. Alias columns appropriately
 
 For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
 """.format(
-            schema=schema, db_name=get_singleton().db_name
+            schema=schema, db_name=Insightly().db_name
         )
         return system
 
@@ -137,7 +136,7 @@ class ExecuteSQL(Node):
             state["sql_query_info"]["query_result"] = dataframe
             print("SUCCESSFUL EXECUTION OF SQL QUERY")
             # duckdb add the new df to the database
-            get_singleton().add_df_to_duckdb(
+            Insightly().add_df_to_duckdb(
                 dataframe, state["sql_query_info"]["table_name"]
             )
             state["sql_query_info"]["sql_error"] = False
@@ -166,7 +165,7 @@ class ExecuteSQL(Node):
         """
         sql_query: str = self.init_query(state, config)
         try:
-            result: duckdb.DuckDBPyRelation = get_singleton().execute_query(sql_query)
+            result: duckdb.DuckDBPyRelation = Insightly().execute_query(sql_query)
             return self.post_query(result, state, config)
         except Exception as e:
             state["sql_query_info"][
@@ -214,7 +213,7 @@ class GetColumnsNode(ChatGPTNodeBase):
         """
         logger = logging.getLogger("Insightly")
         question = state["question"]
-        schema = get_singleton().get_schema(table_name=state['sql_query_info']['table_name'])
+        schema = Insightly().get_schema(table_name=state['sql_query_info']['table_name'])
         logger.debug(f"Getting columns: {question}")
         logger.debug("current schema: ", schema)
         system = """You are an assistant that chooses the appropriate columns for a scatter plot based on the following schema:
