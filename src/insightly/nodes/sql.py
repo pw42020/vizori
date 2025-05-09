@@ -63,8 +63,9 @@ class SQLConverterNode(ChatGPTNodeBase):
         logger.info(f"Converting question to SQL: {question}")
         system = """You are an assistant that converts natural language questions into SQL queries based on the following schema:
 database name: {db_name}
-All tables should begin with the database name (i.e. {db_name}.foods).
 {schema}
+
+All tables should begin with the database name (i.e. {db_name}.foods).
 
 Provide only the SQL query without any explanations. Alias columns appropriately to match the expected keys in the result.
 

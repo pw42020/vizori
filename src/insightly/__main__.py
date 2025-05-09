@@ -19,9 +19,13 @@ def main() -> None:
     """
 
     path_to_csv: str = f"{ROOT_PATH}/data/titanic/train.csv"
-    insightly: Insightly = Insightly()
-    insightly.read_csv_to_duckdb(path_to_csv, "titanic")
-    
+    # print(insightly is insightly)
+    insightly1 = Insightly()
+    insightly1.read_csv_to_duckdb(path_to_csv, "titanic")
+    insightly2 = Insightly()
+    print(insightly1 is insightly2)
+    print(Insightly().get_schema())
+
     _, app = create_and_compile_workflow()
 
     # table = insightly.retrieve_table("db.foods")

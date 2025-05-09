@@ -9,7 +9,6 @@ from insightly.nodes.response import RegenerateQueryNode, RewrittenQuestion, Fun
 from insightly.classes import AgentState
 from insightly.nodes.state import State
 from insightly.nodes.conditionals import *
-from insightly.insightly import Insightly
 
 workflow = StateGraph(AgentState)
 

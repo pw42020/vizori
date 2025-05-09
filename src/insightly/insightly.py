@@ -1,16 +1,19 @@
 from __future__ import annotations
+import logging
 from typing import Any, Dict, Optional
-from typing_extensions import TypedDict
-from dataclasses import dataclass, field
-
-from langgraph.graph import StateGraph
-from insightly.classes import AgentState
 
 import pandas as pd
 import duckdb
 
+class Singleton(type):
+    _instances = {}
+    def __call__(cls):
+        if cls not in cls._instances:
+            instance = super(Singleton, cls).__call__()
+            cls._instances[cls] = instance
+        return cls._instances[cls]
 
-class Insightly:
+class Insightly(metaclass=Singleton):
     """
     A class to represent a connection to a DuckDB database.
 
@@ -23,7 +26,7 @@ class Insightly:
     conn: duckdb.DuckDBPyConnection = None
     db_name: Optional[str] = None
     tables: list[str] = []
-    _instance: Optional[Insightly] = None
+    # _instance: Optional[Insightly] = None
     
     def __init__(self) -> None:
         self.conn = duckdb.connect(database=":memory:")
@@ -31,14 +34,16 @@ class Insightly:
         self.tables = []
         self._instance = None
 
-    def __new__(cls):
-        """
-        Create a new instance of the Insightly class if it doesn't already exist.
-        Used for singleton design pattern across different nodes.
-        """
-        if not cls._instance:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    # def __new__(cls):
+    #     """
+    #     Create a new instance of the Insightly class if it doesn't already exist.
+    #     Used for singleton design pattern across different nodes.
+    #     """
+    #     if cls._instance is None:
+    #         logger = logging.getLogger("Insightly")
+    #         logger.critical("Creating new instance")
+    #         cls._instance = super(Insightly, cls).__new__(cls)
+    #     return cls._instance
 
     # reading the CSV file into a DuckDB table
     def read_csv_to_duckdb(self, path_to_csv: str, table_name: str = "table") -> None:
@@ -67,8 +72,9 @@ class Insightly:
         )
         # set the list of tables for the database for later usage
         tables_tuple = self.conn.execute("PRAGMA show_tables;").fetchall()
-        print(tables_tuple)
+        logger = logging.getLogger("Insightly")
         self.tables = [t[0] for t in tables_tuple]
+        logger.info("tables: {tables}".format(tables=self.tables))
 
     # reading the CSV file into a DuckDB table
     def read_mysql_db(self, path_to_db: str, db_name: str) -> None:
