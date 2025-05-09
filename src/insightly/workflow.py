@@ -10,9 +10,8 @@ from insightly.classes import AgentState
 from insightly.nodes.state import State
 from insightly.nodes.conditionals import *
 
-workflow = StateGraph(AgentState)
-
 def create_and_compile_workflow() -> None:
+    workflow = StateGraph(AgentState)
     # initialize individual nodes
     relevance_checker = CheckRelevanceNode(CheckRelevance)
     sql_converter = SQLConverterNode(ConvertToSQL)

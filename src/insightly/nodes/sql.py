@@ -324,6 +324,7 @@ class HumanResponseNode(ChatGPTNodeBase):
         AgentState
             The updated state of the agent with the human response.
         """
+        logger = logging.getLogger("Insightly")
         state["sql_query_info"]["success_response"] = result.response
-        print(f"Received human response: {state['sql_query_info']['success_response']}")
+        logger.info("Received human response: {success_response}".format(success_response=state['sql_query_info']['success_response']))
         return state
