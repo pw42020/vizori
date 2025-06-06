@@ -32,7 +32,9 @@ def main() -> None:
     # print(table.df())
     # logger = logging.getLogger("Insightly")
 
-    question = "What is the average age of passengers who survived?"
+    question = (
+        "Can you plot the correlation between age and survival rate on the Titanic?"
+    )
     # question = "Create a bar plot that shows the number of passengers, grouped by 10 year age buckets"
     result: dict[str, dict[str, Any]] = ask(app, question)
     if result.get("meant_as_query", False):

@@ -10,21 +10,21 @@ import plotly.graph_objects as go
 
 ROOT_PATH = Path(__file__).parent
 
-sys.path.append(f"{ROOT_PATH}/src")
 from insightly.insightly import Insightly
 from insightly.workflow import create_and_compile_workflow, ask
 
 initialize_app()
 
+
 @https_fn.on_request()
 def ask_question(req: https_fn.Request) -> https_fn.Response:
     """Ask a question to the Insightly app and get a response.
-    
+
     Parameters
     ----------
     req : https_fn.Request
         The request object containing the question to ask.
-    
+
     Returns
     -------
     https_fn.Response
@@ -43,7 +43,9 @@ def ask_question(req: https_fn.Request) -> https_fn.Response:
     if result.get("meant_as_query", False):
         # if the SQL query was executed successfully, print the result
         logger.info(result["sql_query_info"]["success_response"])
-        logger.info("Result: {res}".format(res=result["sql_query_info"]["query_result"]))
+        logger.info(
+            "Result: {res}".format(res=result["sql_query_info"]["query_result"])
+        )
         return https_fn.Response(result["sql_query_info"]["success_response"])
     else:
         # if the plot was generated successfully, show the plot that was returned
