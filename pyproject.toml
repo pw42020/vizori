@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "dataly-backend"
+name = "insightly"
 version = "0.1.0"
 description = ""
 authors = ["Patrick Walsh <patrick.walsh@artemislab.org>"]
 readme = "README.md"
-package-mode = false
+package-mode = true
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -28,8 +28,7 @@ langgraph = "^0.3.34"
 pre-commit = "^4.2.0"
 grandalf = "^0.8"
 nbformat = "^5.10.4"
-fastapi = {extras = ["all"], version = "^0.115.12"}
-bcrypt = "^4.3.0"
+fastapi = { extras = ["all"], version = "^0.115.12" }
 supabase = "^2.15.2"
 loguru = "^0.7.3"
 

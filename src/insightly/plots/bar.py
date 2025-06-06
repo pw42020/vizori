@@ -12,7 +12,7 @@ class BarPlot(Plot):
         # if len(columns) != 2:
         #     raise ValueError("Bar plot requires exactly one column.")
         logger.debug("GENERATE BAR PLOT")
-        logger.debug(df, type(df))
+        logger.debug(df)
 
         # Generate a bar plot (this is a placeholder, actual plotting code would go here)
         return px.bar(df, x=columns[0], y=columns[1])

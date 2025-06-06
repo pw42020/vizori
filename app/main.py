@@ -1,11 +1,19 @@
 import os
+from pathlib import Path
+from typing import Any
 
+ROOT_PATH: str = str(Path(__file__).resolve()).split("app/", maxsplit=1)[0]
+
+from loguru import logger
 from fastapi import FastAPI
-from supabase import Client, create_client
 from dotenv import load_dotenv
+import plotly.graph_objects as go
+from supabase import Client, create_client
 
 from fastapi import FastAPI
-from models import User
+
+from insightly.workflow import create_and_compile_workflow, ask
+from insightly.insightly import Insightly
 
 # loading environment variables that store the supabase URL and API key
 load_dotenv()
@@ -13,11 +21,16 @@ load_dotenv()
 app = FastAPI()
 
 
-api_url: str = os.getenv("SUPABASE_URL")
-key: str = os.getenv("SUPABASE_ADMIN")
+def create_supabase_client() -> Client:
+    """create the supabase client using the environment variables.
 
-
-def create_supabase_client():
+    Returns
+    -------
+    Client
+        The supabase client connected to the backend
+    """
+    api_url: str = os.getenv("SUPABASE_URL")
+    key: str = os.getenv("SUPABASE_ADMIN")
     supabase: Client = create_client(api_url, key)
     return supabase
 
@@ -28,34 +41,40 @@ app = FastAPI()
 supabase = create_supabase_client()
 
 
-def user_exists(key: str = "email", value: str = None):
-    user = supabase.from_("users").select("*").eq(key, value).execute()
-    return len(user.data) > 0
+@app.get("/query")
+def ask_question(question: str) -> Any:
+    """Ask a question to the Insightly app and get a response.
 
+    Parameters
+    ----------
+    req : https_fn.Request
+        The request object containing the question to ask.
 
-# Create a new user
-@app.post("/user")
-def create_user(user: User):
-    try:
-        # Convert email to lowercase
-        user_email = user.email.lower()
+    Returns
+    -------
+    https_fn.Response
+        The response object containing the result of the question.
+    """
+    path_to_csv: str = f"{ROOT_PATH}/data/titanic/train.csv"
+    insightly = Insightly()
+    insightly.read_csv_to_duckdb(path_to_csv, "titanic")
 
-        # Check if user already exists
-        if user_exists(value=user_email):
-            return {"message": "User already exists"}
+    _, app = create_and_compile_workflow()
 
-        # Add user to users table
-        user = (
-            supabase.from_("users")
-            .insert({"name": user.name, "email": user_email})
-            .execute()
+    # question = "What is the average age of passengers who survived?"
+    question = "Create a bar plot that shows the number offunctions passengers, grouped by 10 year age buckets"
+    result: dict[str, dict[str, Any]] = ask(app, question)
+    if result.get("meant_as_query", False):
+        # if the SQL query was executed successfully, print the result
+        logger.info(result["sql_query_info"]["success_response"])
+        logger.info(
+            "Result: {res}".format(res=result["sql_query_info"]["query_result"])
         )
+        # return https_fn.Response(result["sql_query_info"]["success_response"])
+    else:
+        # if the plot was generated successfully, show the plot that was returned
+        figure: go.Figure = result["plot_query_info"]["result"]
+        # turn figure into html and submit it as Jinja template
+        figure_html = figure.to_html(full_html=False, include_plotlyjs="cdn")
 
-        # Check if user was added
-        if user:
-            return {"message": "User created successfully"}
-        else:
-            return {"message": "User creation failed"}
-    except Exception as e:
-        print("Error: ", e)
-        return {"message": "User creation failed"}
+        # return https_fn.Response(figure_html)
