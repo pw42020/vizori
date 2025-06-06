@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 from typing import Any
 from pathlib import Path
 
@@ -7,8 +7,6 @@ from insightly.insightly import Insightly
 from insightly.workflow import create_and_compile_workflow, ask
 
 load_dotenv()
-
-logger = logging.getLogger("Insightly")
 
 ROOT_PATH: str = str(Path(__file__).resolve()).split("src")[0]
 
@@ -23,8 +21,8 @@ def main() -> None:
     insightly1 = Insightly()
     insightly1.read_csv_to_duckdb(path_to_csv, "titanic")
     insightly2 = Insightly()
-    print(insightly1 is insightly2)
-    print(Insightly().get_schema())
+    logger.debug(insightly1 is insightly2)
+    logger.debug(Insightly().get_schema())
 
     _, app = create_and_compile_workflow()
 
@@ -39,8 +37,8 @@ def main() -> None:
     result: dict[str, dict[str, Any]] = ask(app, question)
     if result.get("meant_as_query", False):
         # if the SQL query was executed successfully, print the result
-        print(result["sql_query_info"]["success_response"])
-        print("Result:", result["sql_query_info"]["query_result"])
+        logger.info(result["sql_query_info"]["success_response"])
+        logger.info("Result:", result["sql_query_info"]["query_result"])
     else:
         # if the plot was generated successfully, show the plot that was returned
         result["plot_query_info"]["result"].show()

@@ -3,7 +3,7 @@ This module contains a function to determine whether a given question
 is intended to be an SQL query or a plot based on the provided schema.
 """
 
-import logging
+from loguru import logger
 from random import randint
 
 from pydantic import BaseModel, Field
@@ -70,7 +70,9 @@ class SQLOrPlotNode(ChatGPTNodeBase):
             The system prompt to be used for the ChatOpenAI model.
         """
         question = state["question"]
-        print(f"Checking if the question requires an SQL query or a plot: {question}")
+        logger.info(
+            f"Checking if the question requires an SQL query or a plot: {question}"
+        )
         schema = Insightly().get_schema()
         system = """
 You are an assistant that determines whether a given question requires an SQL query or a plot based on the following schema:
@@ -102,7 +104,6 @@ If the question is related to data visualization, choose one of the following pl
         AgentState
             The updated state of the agent with the SQL query or plot information.
         """
-        logger = logging.getLogger("Insightly")
         state["meant_as_query"] = result.meant_as_query == QueryType.SQL
         logger.info("MEANT AS QUERY: {}".format(state["meant_as_query"]))
         # generate a random table name for the SQL query and the typed dictionaries

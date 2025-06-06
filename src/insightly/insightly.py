@@ -1,17 +1,20 @@
 from __future__ import annotations
-import logging
+from loguru import logger
 from typing import Any, Dict, Optional
 
 import pandas as pd
 import duckdb
 
+
 class Singleton(type):
     _instances = {}
+
     def __call__(cls):
         if cls not in cls._instances:
             instance = super(Singleton, cls).__call__()
             cls._instances[cls] = instance
         return cls._instances[cls]
+
 
 class Insightly(metaclass=Singleton):
     """
@@ -27,7 +30,7 @@ class Insightly(metaclass=Singleton):
     db_name: Optional[str] = None
     tables: list[str] = []
     # _instance: Optional[Insightly] = None
-    
+
     def __init__(self) -> None:
         self.conn = duckdb.connect(database=":memory:")
         self.db_name = "memory"
@@ -72,7 +75,6 @@ class Insightly(metaclass=Singleton):
         )
         # set the list of tables for the database for later usage
         tables_tuple = self.conn.execute("PRAGMA show_tables;").fetchall()
-        logger = logging.getLogger("Insightly")
         self.tables = [t[0] for t in tables_tuple]
         logger.info("tables: {tables}".format(tables=self.tables))
 
@@ -99,7 +101,7 @@ class Insightly(metaclass=Singleton):
             CALL sqlite_attach('{path_to_db}');
             ATTACH '{path_to_db}' AS {db_name} (TYPE sqlite);
         """
-        print(query)
+        logger.debug(query)
         self.conn.execute(query)
 
         # set the list of tables for the database for later usage

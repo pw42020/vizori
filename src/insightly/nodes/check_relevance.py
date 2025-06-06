@@ -3,8 +3,7 @@ used with the LangGraph framework and is a prompt
 to ensure that the answer given by the LLM is structured
 """
 
-import logging
-
+from loguru import logger
 from pydantic import BaseModel, Field
 from pydantic import Field, BaseModel
 from langchain_core.runnables.config import RunnableConfig
@@ -62,7 +61,6 @@ class CheckRelevanceNode(ChatGPTNodeBase):
         AgentState
             The updated state of the agent with the relevance information.
         """
-        logger = logging.getLogger("Insightly")
         question: str = state["question"]
         schema: str = Insightly().get_schema()
         logger.info(f"Checking relevance of the question: {question}")

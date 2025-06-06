@@ -7,89 +7,27 @@ This module provides a Python SDK for interacting with the Insightly AI API.
 
 """
 
-import logging
+from loguru import logger
+import datetime
 import os
 from pathlib import Path
 
+__version__ = "0.1.0"
+__name__ = "Insightly"
+
 ROOT_PATH: str = str(Path(__file__).resolve()).split("src/", maxsplit=1)[0]
 
-__version__ = "0.1.0"
+date_folder: str = os.path.join(
+    ROOT_PATH, "logs", datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+)
 
+if not os.path.exists(date_folder):
+    os.makedirs(date_folder)
 
-class ColorFormatter(logging.Formatter):
-    """class that creates custom formatting for logging"""
-
-    grey = "\033[32m"
-    blue = "\x1b[34;20m"
-    yellow = "\x1b[33;20m"
-    red = "\x1b[31;20m"
-    bold_red = "\x1b[31;1m"
-    reset = "\x1b[0m"
-    fmt = ["[%(levelname)s] [%(asctime)s %(filename)s:%(lineno)d]", " %(message)s"]
-
-    FORMATS = {
-        logging.DEBUG: blue + fmt[0] + reset + fmt[1],
-        logging.INFO: grey + fmt[0] + reset + fmt[1],
-        logging.WARNING: yellow + fmt[0] + reset + fmt[1],
-        logging.ERROR: red + fmt[0] + reset + fmt[1],
-        logging.CRITICAL: bold_red + fmt[0] + reset + fmt[1],
-    }
-
-    def format(self, record: logging.LogRecord) -> str:
-        """format the record
-
-        Parameters
-        ----------
-        record : logging.LogRecord
-            the record to format"""
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt, datefmt="%Y-%m-%dT%H:%M:%SZ")
-        return formatter.format(record)
-
-
-class NoColorFormatter(logging.Formatter):
-    """class that creates custom formatting for logging"""
-
-    fmt = "[%(levelname)s] [%(asctime)s %(filename)s:%(lineno)d] %(message)s"
-
-    FORMATS = {
-        logging.DEBUG: fmt,
-        logging.INFO: fmt,
-        logging.WARNING: fmt,
-        logging.ERROR: fmt,
-        logging.CRITICAL: fmt,
-    }
-
-    def format(self, record: logging.LogRecord) -> str:
-        """format the record
-
-        Parameters
-        ----------
-        record : logging.LogRecord
-            the record to format"""
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt, datefmt="%Y-%m-%dT%H:%M:%SZ")
-        return formatter.format(record)
-
-
-# configure logging
-
-# create log with 'spam_application'
-log = logging.getLogger("Insightly")
-log.setLevel(logging.DEBUG)
-
-# create console handler with a higher log level
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-
-ch.setFormatter(ColorFormatter())
-
-log.addHandler(ch)
-
-# add log handler that outputs to a file
-if not os.path.exists(os.path.join(ROOT_PATH, "logs")):
-    os.makedirs(os.path.join(ROOT_PATH, "logs"))
-fh = logging.FileHandler(os.path.join(ROOT_PATH, "logs", "insightly.log"))
-fh.setLevel(logging.DEBUG)
-fh.setFormatter(NoColorFormatter())
-log.addHandler(fh)
+# configure folder for log files
+logger.add(
+    os.path.join(date_folder, f"{__name__}.log"),
+    rotation="500 MB",
+    level="DEBUG",
+    retention="10 days",
+)

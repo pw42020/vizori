@@ -5,6 +5,7 @@ from typing import TypedDict, Optional, TypeVar, Any
 from abc import ABC, abstractmethod
 
 import pandas as pd
+from loguru import logger
 from pydantic import BaseModel
 from langchain_core.runnables.config import RunnableConfig
 from langchain_openai import ChatOpenAI
@@ -111,13 +112,15 @@ class AgentState(TypedDict):
     attempts: int
     relevance: str
 
+
 class Node(ABC):
     """Abstract base class for Insightly"""
 
     @abstractmethod
     def run(self, state: AgentState, config: RunnableConfig) -> Any:
         """Run the node to get an output and an AgentState."""
-        pass    
+        pass
+
 
 class ConditionalNode(Node):
     """Abstract base class for conditional nodes."""
@@ -125,17 +128,18 @@ class ConditionalNode(Node):
     @abstractmethod
     def run(self, state: AgentState) -> str:
         """Run the conditional node to get an output and an AgentState.
-        
+
         Parameters
         ----------
         state : AgentState
             The state of the agent containing the question and other information.
-        
+
         Returns
         -------
         str
             The next state the agent should transition to."""
         pass
+
 
 # abstract base class that initializes a run() method and requires insightly() object
 # initialize NodeBase for abstract methods and generic type
@@ -180,7 +184,7 @@ class ChatGPTNodeBase(Node, ABC):
     def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
         """Run the node to get an output and an AgentState."""
         system = self.init_query(state, config)
-        print(f"Running node with question: {system}")
+        logger.debug(f"Running node with question: {system}")
         result: T = self.run_chatgpt(
             question=state["question"],
             system=system,
