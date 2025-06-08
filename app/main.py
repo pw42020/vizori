@@ -1,3 +1,5 @@
+"""FastAPI application that retrieves queries from a CSV file using Insightly."""
+
 import os
 from pathlib import Path
 from typing import Any
@@ -5,15 +7,16 @@ from typing import Any
 ROOT_PATH: str = str(Path(__file__).resolve()).split("app/", maxsplit=1)[0]
 
 from loguru import logger
-from fastapi import FastAPI
 from dotenv import load_dotenv
 import plotly.graph_objects as go
 from supabase import Client, create_client
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse, HTMLResponse
 
 from insightly.workflow import create_and_compile_workflow, ask
 from insightly.insightly import Insightly
+from insightly.classes import AgentState
 
 # loading environment variables that store the supabase URL and API key
 load_dotenv()
@@ -62,19 +65,19 @@ def ask_question(question: str) -> Any:
     _, app = create_and_compile_workflow()
 
     # question = "What is the average age of passengers who survived?"
-    question = "Create a bar plot that shows the number offunctions passengers, grouped by 10 year age buckets"
-    result: dict[str, dict[str, Any]] = ask(app, question)
+    result: AgentState = ask(app, question)
     if result.get("meant_as_query", False):
         # if the SQL query was executed successfully, print the result
         logger.info(result["sql_query_info"]["success_response"])
         logger.info(
             "Result: {res}".format(res=result["sql_query_info"]["query_result"])
         )
-        # return https_fn.Response(result["sql_query_info"]["success_response"])
+
+        return JSONResponse(content=result)
     else:
         # if the plot was generated successfully, show the plot that was returned
         figure: go.Figure = result["plot_query_info"]["result"]
         # turn figure into html and submit it as Jinja template
-        figure_html = figure.to_html(full_html=False, include_plotlyjs="cdn")
+        figure_html = figure.to_html(full_html=True, include_plotlyjs="cdn")
 
-        # return https_fn.Response(figure_html)
+        return HTMLResponse(content=figure_html)
