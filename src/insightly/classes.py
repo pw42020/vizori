@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from langchain_core.runnables.config import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -35,6 +35,7 @@ class PlotType(str, Enum):
 
     SCATTER = "SCATTER"
     BAR = "BAR"
+    NONE = "NONE"
     # LINE = "LINE"
     # HISTOGRAM = "HISTOGRAM"
     # PIE = "PIE"
@@ -106,11 +107,13 @@ class AgentState(TypedDict):
     """
 
     question: str
-    meant_as_query: bool
-    sql_query_info: Optional[SqlQueryInfo] = None
-    plot_query_info: Optional[PlotQueryInfo] = None
     attempts: int
-    relevance: str
+    error_occurred: bool
+    relevance: Optional[str]
+    plot_type: Optional[PlotType]
+    sql_query: Optional[str]
+    columns: Optional[list[str]]
+    response: Optional[str]
 
 
 class Node(ABC):

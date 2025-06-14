@@ -12,3 +12,4 @@ class State(str, Enum):
     EXECUTE_SQL: str = "execute_sql"
     CHECK_IF_ERROR: str = "check_if_error"
     GENERATE_SUCCESS_RESPONSE: str = "generate_human_response"
+    GET_COLUMNS_IF_PLOT: str = "get_columns_if_plot"

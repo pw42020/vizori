@@ -94,10 +94,10 @@ For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
         AgentState
             The updated state of the agent with the SQL query.
         """
-        state["sql_query_info"]["sql_query"] = result.sql_query
+        state["sql_query"] = result.sql_query
         return state
 
-
+# NOTE: DEPRECATED
 class ExecuteSQL(Node):
     """Class to execute SQL queries.
     This class is used to execute SQL queries on the database and retrieve the results.
@@ -217,9 +217,7 @@ class GetColumnsNode(ChatGPTNodeBase):
             The system prompt to be used for the ChatOpenAI model.
         """
         question = state["question"]
-        schema = Insightly().get_schema(
-            table_name=state["sql_query_info"]["table_name"]
-        )
+        schema = Insightly().get_schema()
         logger.debug(f"Getting columns: {question}")
         logger.debug("current schema: ", schema)
         system = """You are an assistant that chooses the appropriate columns for a scatter plot based on the following schema:
@@ -254,22 +252,22 @@ Only return the names of the columns with no SQL, in the order they should be us
         AgentState
             The updated state of the agent with the selected columns and plot.
         """
-        state["plot_query_info"]["columns"] = result.columns
+        state["columns"] = result.columns
         # create a plot dependent on the type of plot type passed earlier
-        if state["plot_query_info"]["plot_type"] == PlotType.SCATTER:
-            scatter_plot = ScatterPlot()
-            state["plot_query_info"]["result"] = scatter_plot.generate(
-                state["sql_query_info"]["query_result"],
-                state["plot_query_info"]["columns"],
-            )
-        elif state["plot_query_info"]["plot_type"] == PlotType.BAR:
-            bar_plot = BarPlot()
-            state["plot_query_info"]["result"] = bar_plot.generate(
-                state["sql_query_info"]["query_result"],
-                state["plot_query_info"]["columns"],
-            )
+        # if state["plot_type"] == PlotType.SCATTER:
+        #     scatter_plot = ScatterPlot()
+        #     state["result"] = scatter_plot.generate(
+        #         state["query_result"],
+        #         state["columns"],
+        #     )
+        # elif state["plot_type"] == PlotType.BAR:
+        #     bar_plot = BarPlot()
+        #     state["result"] = bar_plot.generate(
+        #         state["query_result"],
+        #         state["columns"],
+        #     )
         logger.info(
-            f"Selected columns for scatter plot: {state['plot_query_info']['columns']}"
+            f"Selected columns for scatter plot: {state['columns']}"
         )
         return state
 
@@ -313,12 +311,18 @@ class HumanResponseNode(ChatGPTNodeBase):
             The system prompt to be used for the ChatOpenAI model.
         """
         question = state["question"]
-        answer: str = state["sql_query_info"]["query_result"]
-        logger.debug(f"Waiting for human response to the question: {question}")
-        system = """You are an assistant that retrieves the result of a question asked
-    by a human and provides a normal response based on the question. The answer is {answer}""".format(
-            answer=answer
-        )
+        error: str = state.get("error_occurred", False)
+        sql_query: str = state["sql_query"]
+        logger.critical(f"Waiting for human response to the question: {question}")
+        system = f"""You are an assistant that has helped provide a sql query to a user to help
+        create a response to their question. The question is: {question}.
+        The sql query you provided is: {sql_query}.
+        Did an error occur? {"Yes" if error else "No"}.
+
+        If an error did occur, apologize and let the user know you will try again.
+        If no error occurred, provide a concise and clear answer and explanation to the SQL
+        query you recommend to run.
+        """
         return system
 
     def post_query(
@@ -340,10 +344,10 @@ class HumanResponseNode(ChatGPTNodeBase):
         AgentState
             The updated state of the agent with the human response.
         """
-        state["sql_query_info"]["success_response"] = result.response
+        state["response"] = result.response
         logger.info(
-            "Received human response: {success_response}".format(
-                success_response=state["sql_query_info"]["success_response"]
+            "Received human response: {response}".format(
+                response=state["response"]
             )
         )
         return state

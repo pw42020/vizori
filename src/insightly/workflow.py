@@ -26,6 +26,7 @@ def create_and_compile_workflow() -> None:
     relevance_router = RelevanceConditionalNode()
     check_error_in_sql_router = CheckErrorInSQLConditionalNode()
     check_number_of_attempts_router = CheckNumberOfAttemptsConditionalNode()
+    get_columns_if_plot_router = GetColumnsIfPlotConditionalNode()
 
     # connecting all non-conditional nodes to workflow
     workflow.add_node(State.CHECK_RELEVANCE, relevance_checker.run)
@@ -36,7 +37,6 @@ def create_and_compile_workflow() -> None:
     workflow.add_node(State.GENERATE_FUNNY_RESPONSE, funny_response_node.run)
     workflow.add_node(State.GET_COLUMNS, get_columns_node.run)
     workflow.add_node(State.REGENERATE_QUERY, regenerate_query_node.run)
-    workflow.add_node(State.CHECK_IF_ERROR, check_error_in_sql_router.run)
 
     # adding edges to the workflow
     # if the question is relevant, make a query. If not, generate a funny response
@@ -45,12 +45,15 @@ def create_and_compile_workflow() -> None:
     # check if it is a SQL query or plot, and either way filter for plot or do
     # SQL query
     workflow.add_edge(State.CHECK_IF_SQL_OR_PLOT, State.CONVERT_NL_TO_SQL)
+    workflow.add_conditional_edges(State.CONVERT_NL_TO_SQL, check_error_in_sql_router.run)
+
+    workflow.add_conditional_edges(State.GENERATE_SUCCESS_RESPONSE, get_columns_if_plot_router.run)
     
     # execute the SQL generated from the natural language conversion step
-    workflow.add_edge(State.CONVERT_NL_TO_SQL, State.EXECUTE_SQL)
+    # workflow.add_edge(State.CONVERT_NL_TO_SQL, State.EXECUTE_SQL)
 
     # once SQL has been executed, first check if there was an error
-    workflow.add_conditional_edges(State.EXECUTE_SQL, check_error_in_sql_router.run)
+    # workflow.add_conditional_edges(State.EXECUTE_SQL, check_error_in_sql_router.run)
 
     # if there was no error, try again to regenerate the query and convert
     # the new question to SQL

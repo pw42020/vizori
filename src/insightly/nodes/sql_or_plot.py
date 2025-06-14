@@ -104,22 +104,9 @@ If the question is related to data visualization, choose one of the following pl
         AgentState
             The updated state of the agent with the SQL query or plot information.
         """
-        state["meant_as_query"] = result.meant_as_query == QueryType.SQL
-        logger.info("MEANT AS QUERY: {}".format(state["meant_as_query"]))
-        # generate a random table name for the SQL query and the typed dictionaries
-        state["sql_query_info"] = SqlQueryInfo(
-            sql_query="",
-            query_result="",
-            table_name=f"transformation_{randint(0, 10000)}",
-            query_rows=[],
-        )
-        state["plot_query_info"] = PlotQueryInfo(
-            plot_type=result.type_of_plot.value, query_result="", query_rows=[]
-        )
-        # check if the meant_as_query is a boolean
-        assert state["meant_as_query"] in [
-            True,
-            False,
-        ], "Meant as query should be a boolean"
-        logger.info(f"Determined type: {state['meant_as_query']}")
+        if result.meant_as_query == QueryType.SQL:
+            state["plot_type"] = PlotType.NONE
+        else:
+            state["plot_type"] = result.type_of_plot
+        logger.info(f"Determined type: {state['plot_type']}")
         return state

@@ -75,36 +75,9 @@ class FunnyResponseNode(ChatGPTNodeBase):
             The updated state of the agent with the SQL query information.
         """
         # initialize the SQL query info
-        state["sql_query_info"] = SqlQueryInfo(
-            sql_query="", query_result="", query_rows=[], sql_error=False
-        )
-        state["sql_query_info"]["query_result"] = result.response
+        state["response"] = result.response
         logger.debug("Generated funny response.")
         return state
-
-    def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
-        """Run the node to get an output and an AgentState.
-
-        Parameters
-        ----------
-        state : AgentState
-            The current state of the agent.
-        config : RunnableConfig
-            The configuration for the runnable.
-
-        Returns
-        -------
-        AgentState
-            The updated state of the agent with the funny response.
-        """
-        system = self.init_query(state, config)
-        logger.info(f"Running node with question: {system}")
-        result: T = self.run_chatgpt(
-            question="I can't help with that unfortunately!",
-            system=system,
-        )
-        return self.post_query(result, state, config)
-
 
 class RewrittenQuestion(BaseModel):
     """Field to retrieve the rewritten question.
