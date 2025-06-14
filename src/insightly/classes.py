@@ -5,6 +5,7 @@ from typing import TypedDict, Optional, TypeVar, Any
 from abc import ABC, abstractmethod
 
 import pandas as pd
+import duckdb
 from loguru import logger
 from pydantic import BaseModel, Field
 from langchain_core.runnables.config import RunnableConfig
@@ -12,7 +13,6 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 T = TypeVar("T", bound=BaseModel)
-
 
 class PlotType(str, Enum):
     """Plot type for the visualization of the data.
@@ -211,3 +211,69 @@ class QueryType(str, Enum):
     SQL = "sql"
     SCATTER = "scatter"
     BAR = "bar"
+
+class VariableType(str, Enum):
+    """DuckDB SQL types"""
+    VARCHAR = "VARCHAR"
+    BIGINT = "BIGINT"
+    BIT = "BIT"
+    BLOB = "BLOB"
+    BOOLEAN = "BOOLEAN"
+    DATE = "DATE"
+    DECIMAL = "DECIMAL"
+    DOUBLE = "DOUBLE"
+    FLOAT = "FLOAT"
+    HUGEINT = "HUGEINT"
+    INTEGER = "INTEGER"
+    INTERVAL = "INTERVAL"
+    JSON = "JSON"
+    SMALLINT = "SMALLINT"
+    TIME = "TIME"
+    TIMESTAMP = "TIMESTAMP"
+    TINYINT = "TINYINT"
+    UBIGINT = "UBIGINT"
+    UINTEGER = "UINTEGER"
+    USMALLINT = "USMALLINT"
+    UTINYINT = "UTINYINT"
+    UUID = "UUID"
+
+
+
+class Table(BaseModel):
+    """Database table information.
+
+    Attributes
+    ----------
+    columns : list
+        A list of column names in the table.
+    """
+
+    fields: dict[str, VariableType] = Field(description="A list of column names in the table.")
+
+class Schema(BaseModel):
+    """Database schema information.
+
+    Attributes
+    ----------
+    tables : dict
+        A dictionary containing table names as keys and their columns as values.
+    """
+
+    tables: dict[str, Table] = Field(
+        description="A dictionary containing table names as keys and their columns as values."
+    )
+
+    def to_string(self) -> str:
+        """Convert the schema to a string representation.
+
+        Returns
+        -------
+        str
+            A string representation of the database schema.
+        """
+        schema_str = ""
+        for table_name, table in self.tables.items():
+            schema_str += f"Table: {table_name}\n"
+            for column_name, column_type in table.fields.items():
+                schema_str += f"  - {column_name}: {column_type}\n"
+        return schema_str

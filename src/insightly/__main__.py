@@ -2,7 +2,10 @@ from loguru import logger
 from typing import Any
 from pathlib import Path
 
+import duckdb
 from dotenv import load_dotenv
+
+from insightly.classes import Schema, Table, VariableType
 from insightly.insightly import Insightly
 from insightly.workflow import create_and_compile_workflow, ask
 
@@ -10,6 +13,56 @@ load_dotenv()
 
 ROOT_PATH: str = str(Path(__file__).resolve()).split("src")[0]
 
+
+def read_csv_to_duckdb(conn: duckdb.DuckDBPyConnection, path_to_csv: str, table_name: str = "table") -> None:
+        """
+        Reads a CSV file into a DuckDB table.
+
+        Parameters
+        ----------
+        conn : duckdb.DuckDBPyConnection
+            The DuckDB connection object.
+        path_to_csv : str
+            The path to the CSV file.
+        table_name : str, optional
+            The name of the table to create in DuckDB (default is "titanic").
+
+        Returns
+        -------
+        None
+        """
+        # self.db_name = table_name
+        conn.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {table_name} AS
+            SELECT * FROM '{path_to_csv}'
+            """
+        )
+        # set the list of tables for the database for later usage
+        tables_tuple = conn.execute("PRAGMA show_tables;").fetchall()
+        tables = [t[0] for t in tables_tuple]
+        logger.info("tables: {tables}".format(tables=tables))
+
+        return tables
+
+def create_schema_from(conn: duckdb.DuckDBPyConnection, tables: list[str]) -> None:
+    # schema = Schema()
+    # get the schema with each of the table names
+    tables = {}
+
+    for table in tables:
+        # Fetch column info
+        table_fields: list[list[str, str]] = conn.execute(
+            f"PRAGMA table_info('memory.{table}')"
+        ).fetchall()
+
+        # Format into a string
+        table_fields_dict = {}
+        for field in table_fields:
+             table_fields_dict[field[1]] = getattr(VariableType, field[2])
+        tables[table] = table_fields_dict
+
+    return Schema(tables=tables)
 
 def main() -> None:
     """
@@ -19,10 +72,17 @@ def main() -> None:
     path_to_csv: str = f"{ROOT_PATH}/data/titanic/train.csv"
     # print(insightly is insightly)
     insightly1 = Insightly()
-    insightly1.read_csv_to_duckdb(path_to_csv, "titanic")
-    insightly2 = Insightly()
-    logger.debug(insightly1 is insightly2)
-    logger.debug(Insightly().get_schema())
+    conn = duckdb.connect()
+    tables: list[str] = read_csv_to_duckdb(conn, path_to_csv, "titanic")
+    create_schema_from(conn, tables)
+
+    # insightly1.add_schema()
+
+    # insightly2 = Insightly()
+    # logger.debug(insightly1 is insightly2)
+    # logger.debug(Insightly().schema.to_string())
+
+    return
 
     _, app = create_and_compile_workflow()
 

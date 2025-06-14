@@ -62,7 +62,7 @@ class CheckRelevanceNode(ChatGPTNodeBase):
             The updated state of the agent with the relevance information.
         """
         question: str = state["question"]
-        schema: str = Insightly().get_schema()
+        schema: str = Insightly().schema.to_string()
         logger.info(f"Checking relevance of the question: {question}")
         system: str = (
             """You are an assistant that determines whether a given question is related to the following database schema.

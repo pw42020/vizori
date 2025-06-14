@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 import pandas as pd
 import duckdb
 
+from insightly.classes import Schema
 
 class Singleton(type):
     _instances = {}
@@ -29,6 +30,7 @@ class Insightly(metaclass=Singleton):
     conn: duckdb.DuckDBPyConnection = None
     db_name: Optional[str] = None
     tables: list[str] = []
+    schema: Schema
     # _instance: Optional[Insightly] = None
 
     def __init__(self) -> None:
@@ -36,6 +38,9 @@ class Insightly(metaclass=Singleton):
         self.db_name = "memory"
         self.tables = []
         self._instance = None
+
+    def add_schema(self, schema: Schema) -> None:
+        self.schema = schema
 
     # def __new__(cls):
     #     """

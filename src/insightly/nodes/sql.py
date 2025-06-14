@@ -59,7 +59,7 @@ class SQLConverterNode(ChatGPTNodeBase):
         """
         logger.info("Convert natural language to SQL")
         question = state["question"]
-        schema = Insightly().get_schema()
+        schema = Insightly().schema.to_string()
         logger.info(f"Converting question to SQL: {question}")
         system = """You are an assistant that converts natural language questions into SQL queries based on the following schema:
 database name: {db_name}
@@ -217,7 +217,7 @@ class GetColumnsNode(ChatGPTNodeBase):
             The system prompt to be used for the ChatOpenAI model.
         """
         question = state["question"]
-        schema = Insightly().get_schema()
+        schema = Insightly().schema.to_string()
         logger.debug(f"Getting columns: {question}")
         logger.debug("current schema: ", schema)
         system = """You are an assistant that chooses the appropriate columns for a scatter plot based on the following schema:

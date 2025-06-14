@@ -73,7 +73,7 @@ class SQLOrPlotNode(ChatGPTNodeBase):
         logger.info(
             f"Checking if the question requires an SQL query or a plot: {question}"
         )
-        schema = Insightly().get_schema()
+        schema = Insightly().schema.to_string()
         system = """
 You are an assistant that determines whether a given question requires an SQL query or a plot based on the following schema:
 {schema}
