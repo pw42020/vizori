@@ -15,7 +15,7 @@ class RelevanceConditionalNode(ConditionalNode):
     def run(self, state: AgentState) -> str:
         """Run the conditional node."""
         logger.info("Checking relevance of the question.")
-        if state["relevance"] == "relevant":
+        if state.relevance == "relevant":
             return State.CHECK_IF_SQL_OR_PLOT
         else:
             logger.warning("Question is not relevant. Ending workflow.")
@@ -32,7 +32,7 @@ class CheckErrorInSQLConditionalNode(ConditionalNode):
         sql_syntax_correct: bool = True
         try:
             # use EXPLAIN to check for syntax errors without executing the query
-            Insightly().execute_query(f"EXPLAIN {state["sql_query"]}")
+            Insightly().execute_query(f"EXPLAIN {state.sql_query}")
         except duckdb.ParserException as e:
             logger.error(f"SQL Syntax Error: {e}")
             sql_syntax_correct = False
@@ -49,10 +49,10 @@ class CheckNumberOfAttemptsConditionalNode(ConditionalNode):
     def run(self, state: AgentState) -> str:
         """Run the conditional node."""
         logger.debug("Checking the number of attempts.")
-        if state["attempts"] < MAX_NUM_ATTEMPTS:
+        if state.attempts < MAX_NUM_ATTEMPTS:
             return State.REGENERATE_QUERY
         else:
-            state["response"] = (
+            state.response = (
                 "I couldn't create an answer for you based off of your question. "
                 "Please try again with a differently-phrased question."
             )
@@ -64,7 +64,7 @@ class GetColumnsIfPlotConditionalNode(ConditionalNode):
     def run(self, state: AgentState) -> str:
         """Run the conditional node."""
         logger.debug("Checking if the question is meant to be plotted.")
-        if state["plot_type"] != PlotType.NONE:
+        if state.plot_type != PlotType.NONE:
             return State.GET_COLUMNS
         else:
             return END

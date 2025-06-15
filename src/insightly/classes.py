@@ -9,7 +9,8 @@ import duckdb
 from loguru import logger
 from pydantic import BaseModel, Field
 from langchain_core.runnables.config import RunnableConfig
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
 T = TypeVar("T", bound=BaseModel)
@@ -87,7 +88,7 @@ class PlotQueryInfo(TypedDict):
     result: str
 
 
-class AgentState(TypedDict):
+class AgentState(BaseModel):
     """Agent state for the SQL query and plot information.
 
     Attributes
@@ -108,12 +109,12 @@ class AgentState(TypedDict):
 
     question: str
     attempts: int
-    error_occurred: bool
-    relevance: Optional[str]
-    plot_type: Optional[PlotType]
-    sql_query: Optional[str]
-    columns: Optional[list[str]]
-    response: Optional[str]
+    error_occurred: bool = Field(default_factory=lambda: False)
+    relevance: Optional[str] = Field(default_factory=lambda: None)
+    plot_type: Optional[PlotType] = Field(default_factory=lambda: None)
+    sql_query: Optional[str] = Field(default_factory=lambda: None)
+    columns: Optional[list[str]] = Field(default_factory=lambda: None)
+    response: Optional[str] = Field(default_factory=lambda: None)
 
 
 class Node(ABC):
@@ -166,30 +167,28 @@ class ChatGPTNodeBase(Node, ABC):
                 ("human", question),
             ]
         )
-        llm = ChatOpenAI(temperature=0)
-        structured_llm = llm.with_structured_output(self.OutputClass)
-        sql_generator = convert_prompt | structured_llm
-        result = sql_generator.invoke({})
+        llm = ChatAnthropic(temperature=0, model='claude-3-opus-20240229')
+        structured_llm = llm.with_structured_output(self.OutputClass, method="function_calling")
+        generator = convert_prompt | structured_llm
+        result = generator.invoke({})
         return result
 
     @abstractmethod
     def init_query(self, state: AgentState, config: RunnableConfig) -> str:
         """Initialize the prompt question for the Insightly class."""
-        pass
 
     @abstractmethod
     def post_query(
         self, result: T, state: AgentState, config: RunnableConfig
     ) -> AgentState:
         """Post query to get an output and an AgentState."""
-        pass
 
     def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
         """Run the node to get an output and an AgentState."""
         system = self.init_query(state, config)
         logger.debug(f"Running node with question: {system}")
         result: T = self.run_chatgpt(
-            question=state["question"],
+            question=state.question,
             system=system,
         )
         return self.post_query(result, state, config)

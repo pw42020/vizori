@@ -75,7 +75,7 @@ class FunnyResponseNode(ChatGPTNodeBase):
             The updated state of the agent with the SQL query information.
         """
         # initialize the SQL query info
-        state["response"] = result.response
+        state.response = result.response
         logger.debug("Generated funny response.")
         return state
 
@@ -145,7 +145,7 @@ class RegenerateQueryNode(ChatGPTNodeBase):
                 ("system", system),
                 (
                     "human",
-                    f"Original Question: {state['question']}\nReformulate the question to enable more precise SQL queries, ensuring all necessary details are preserved.",
+                    f"Original Question: {state.question}\nReformulate the question to enable more precise SQL queries, ensuring all necessary details are preserved.",
                 ),
             ]
         )
@@ -174,7 +174,7 @@ class RegenerateQueryNode(ChatGPTNodeBase):
         AgentState
             The updated state of the agent with the rewritten question.
         """
-        state["question"] = result.question
-        state["attempts"] += 1
-        logger.debug(f"Rewritten question: {state['question']}")
+        state.question = result.question
+        state.attempts += 1
+        logger.debug(f"Rewritten question: {state.question}")
         return state

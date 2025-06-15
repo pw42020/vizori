@@ -61,7 +61,7 @@ class CheckRelevanceNode(ChatGPTNodeBase):
         AgentState
             The updated state of the agent with the relevance information.
         """
-        question: str = state["question"]
+        question: str = state.question
         schema: str = Insightly().schema.to_string()
         logger.info(f"Checking relevance of the question: {question}")
         system: str = (
@@ -96,5 +96,5 @@ Respond with only "relevant" or "not_relevant".
         AgentState
             The updated state of the agent with the relevance information.
         """
-        state["relevance"] = result.relevance
+        state.relevance = result.relevance
         return state

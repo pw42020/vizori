@@ -4,7 +4,7 @@ from langgraph.graph import StateGraph, END
 from insightly.nodes.check_relevance import CheckRelevanceNode, CheckRelevance
 from insightly.nodes.sql import SQLConverterNode, ConvertToSQL
 from insightly.nodes.sql_or_plot import SQLOrPlotNode, CheckIfSQLOrPlotReturn
-from insightly.nodes.sql import ExecuteSQL, HumanResponse, HumanResponseNode, GetColumnsNode, Columns
+from insightly.nodes.sql import HumanResponse, HumanResponseNode, GetColumnsNode, Columns, NewFieldsNode, NewFields
 from insightly.nodes.response import RegenerateQueryNode, RewrittenQuestion, FunnyResponse, FunnyResponseNode
 from insightly.classes import AgentState
 from insightly.nodes.state import State
@@ -15,8 +15,8 @@ def create_and_compile_workflow() -> None:
     # initialize individual nodes
     relevance_checker = CheckRelevanceNode(CheckRelevance)
     sql_converter = SQLConverterNode(ConvertToSQL)
+    additions_from_nl_to_sql = NewFieldsNode(NewFields)
     sql_or_plot_checker = SQLOrPlotNode(CheckIfSQLOrPlotReturn)
-    execute_sql = ExecuteSQL()
     regenerate_query_node = RegenerateQueryNode(RewrittenQuestion)
     funny_response_node = FunnyResponseNode(FunnyResponse)
     human_response_node = HumanResponseNode(HumanResponse)
@@ -32,11 +32,11 @@ def create_and_compile_workflow() -> None:
     workflow.add_node(State.CHECK_RELEVANCE, relevance_checker.run)
     workflow.add_node(State.CHECK_IF_SQL_OR_PLOT, sql_or_plot_checker.run)
     workflow.add_node(State.CONVERT_NL_TO_SQL, sql_converter.run)
-    workflow.add_node(State.EXECUTE_SQL, execute_sql.run)
     workflow.add_node(State.GENERATE_SUCCESS_RESPONSE, human_response_node.run)
     workflow.add_node(State.GENERATE_FUNNY_RESPONSE, funny_response_node.run)
     workflow.add_node(State.GET_COLUMNS, get_columns_node.run)
     workflow.add_node(State.REGENERATE_QUERY, regenerate_query_node.run)
+    workflow.add_node(State.ADDITIONS_FROM_NL_TO_SQL, additions_from_nl_to_sql.run)
 
     # adding edges to the workflow
     # if the question is relevant, make a query. If not, generate a funny response
@@ -45,7 +45,8 @@ def create_and_compile_workflow() -> None:
     # check if it is a SQL query or plot, and either way filter for plot or do
     # SQL query
     workflow.add_edge(State.CHECK_IF_SQL_OR_PLOT, State.CONVERT_NL_TO_SQL)
-    workflow.add_conditional_edges(State.CONVERT_NL_TO_SQL, check_error_in_sql_router.run)
+    workflow.add_edge(State.CONVERT_NL_TO_SQL, State.ADDITIONS_FROM_NL_TO_SQL)
+    workflow.add_conditional_edges(State.ADDITIONS_FROM_NL_TO_SQL, check_error_in_sql_router.run)
 
     workflow.add_conditional_edges(State.GENERATE_SUCCESS_RESPONSE, get_columns_if_plot_router.run)
     

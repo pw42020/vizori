@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from pydantic import Field, BaseModel
 from langchain_core.runnables.config import RunnableConfig
 
-from insightly.classes import AgentState, ChatGPTNodeBase, Node, T, PlotType
+from insightly.classes import AgentState, ChatGPTNodeBase, T, VariableType
 from insightly.plotting import BarPlot, ScatterPlot
 from insightly.insightly import Insightly
 
@@ -24,7 +24,6 @@ class ConvertToSQL(BaseModel):
     sql_query: str = Field(
         description="The SQL query generated from the natural language question."
     )
-
 
 class SQLConverterNode(ChatGPTNodeBase):
     """Class to convert natural language questions to SQL queries.
@@ -58,7 +57,7 @@ class SQLConverterNode(ChatGPTNodeBase):
             The updated state of the agent with the SQL query.
         """
         logger.info("Convert natural language to SQL")
-        question = state["question"]
+        question = state.question
         schema = Insightly().schema.to_string()
         logger.info(f"Converting question to SQL: {question}")
         system = """You are an assistant that converts natural language questions into SQL queries based on the following schema:
@@ -70,6 +69,8 @@ All tables should begin with the database name (i.e. {db_name}.foods).
 Provide only the SQL query without any explanations. Alias columns appropriately to match the expected keys in the result.
 
 For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
+
+If any columns need to be added to the schema to answer the question, add them to the additions field with their types.
 """.format(
             schema=schema, db_name=Insightly().db_name
         )
@@ -94,33 +95,74 @@ For example, alias 'food.name' as 'food_name' and 'food.price' as 'price'.
         AgentState
             The updated state of the agent with the SQL query.
         """
-        state["sql_query"] = result.sql_query
+        state.sql_query = result.sql_query
         return state
 
-# NOTE: DEPRECATED
-class ExecuteSQL(Node):
-    """Class to execute SQL queries.
-    This class is used to execute SQL queries on the database and retrieve the results.
+class NewTableFields(BaseModel):
+    fields: dict[str, VariableType] = Field(
+        description="New columns to add to the schema with their types."
+    )
+
+class NewFields(BaseModel):
+    additions: dict[str, NewTableFields] = Field(
+        description="Table name as the key and the new, added fields as the values."
+    )
+    # additions: list[tuple[str, VariableType]] = Field(
+    #     description="New fields to add to the schema with their type as the second element of the tuple."
+    # )
+
+
+class NewFieldsNode(ChatGPTNodeBase):
+    """Class to get new fields to add to the schema
+
+    This class is used to get new fields to add to the schema based on the provided database schema.
     """
 
     def init_query(self, state: AgentState, config: RunnableConfig) -> str:
         """
-        Initialize the SQL query for execution.
-        This function retrieves the SQL query from the state and prepares
-        """
-        sql_query = state["sql_query_info"]["sql_query"].strip()
-        logger.info(f"Executing SQL query: {sql_query}")
-        return sql_query
+        Initialize the new fields for the schema.
 
+        This function retrieves the question and schema from the state and prepares
+        the system prompt for the ChatOpenAI model to get the new fields for the schema.
+
+        Parameters
+        ----------
+        state : AgentState
+            The current state of the agent.
+        config : RunnableConfig
+            The configuration for the runnable.
+
+        Returns
+        -------
+        str
+            The system prompt to be used for the ChatOpenAI model.
+        """
+        question = state.question
+        schema = Insightly().schema.to_string()
+        logger.debug(f"Getting new fields: {question}")
+        logger.debug("current schema: ", schema)
+        system = """You are an assistant that chooses any new fields to add to the schema based on the following schema:
+{schema}
+
+And the SQL query: 
+{sql_query}
+
+Available types to choose from are: {types}
+
+Provide only the new fields to be added to the schema without any explanations.
+""".format(schema=schema, sql_query=state.sql_query, types=", ".join([member.value for member in VariableType]))
+        return system
+    
     def post_query(
-        self, result: duckdb.DuckDBPyRelation, state: AgentState, config: RunnableConfig
-    ):
-        """Post querym select required info to the state
+        self, result: NewFields, state: AgentState, config: RunnableConfig
+    ) -> AgentState:
+        """turn the new fields into additions to the schema and add them to the state
+        and return the state
 
         Parameters
         ----------
-        result : duckdb.DuckDBPyRelation
-            The result of the SQL query execution.
+        result : NewFields
+            The result of the new fields.
         state : AgentState
             The current state of the agent.
         config : RunnableConfig
@@ -129,53 +171,14 @@ class ExecuteSQL(Node):
         Returns
         -------
         AgentState
-            The updated state of the agent with the SQL query result.
+            The updated state of the agent with the new fields added to the schema.
         """
-        sql_query: str = state["sql_query_info"]["sql_query"]
-        if sql_query.lower().startswith("select"):
-            dataframe = result.df()
-            state["sql_query_info"]["query_result"] = dataframe
-            logger.debug("SUCCESSFUL EXECUTION OF SQL QUERY")
-            # duckdb add the new df to the database
-            Insightly().add_df_to_duckdb(
-                dataframe, state["sql_query_info"]["table_name"]
-            )
-            state["sql_query_info"]["sql_error"] = False
-            logger.debug("SQL SELECT query executed successfully.")
-        else:
-            state["sql_query_info"][
-                "query_result"
-            ] = "The action has been successfully completed."
-            state["sql_query_info"]["sql_error"] = False
-            logger.debug("SQL command executed successfully.")
-
-    def run(self, state: AgentState, config: RunnableConfig) -> AgentState:
-        """Run the SQL query and execute it on the database.
-
-        Parameters
-        ----------
-        state : AgentState
-            The current state of the agent.
-        config : RunnableConfig
-            The configuration for the runnable.
-
-        Returns
-        -------
-        AgentState
-            The updated state of the agent with the SQL query result.
-        """
-        sql_query: str = self.init_query(state, config)
-        try:
-            result: duckdb.DuckDBPyRelation = Insightly().execute_query(sql_query)
-            return self.post_query(result, state, config)
-        except Exception as e:
-            state["sql_query_info"][
-                "query_result"
-            ] = f"Error executing SQL query: {str(e)}"
-            state["sql_query_info"]["sql_error"] = True
-            logger.error(f"Error executing SQL query: {str(e)}")
+        print(f"RESULT: {result}")
+        Insightly().add_to_schema(result.additions)
+        logger.info(
+            f"Added new fields to schema: {result.additions}"
+        )
         return state
-
 
 class Columns(BaseModel):
     """Class to represent the columns for a scatter plot.
@@ -216,7 +219,7 @@ class GetColumnsNode(ChatGPTNodeBase):
         str
             The system prompt to be used for the ChatOpenAI model.
         """
-        question = state["question"]
+        question = state.question
         schema = Insightly().schema.to_string()
         logger.debug(f"Getting columns: {question}")
         logger.debug("current schema: ", schema)
@@ -252,22 +255,22 @@ Only return the names of the columns with no SQL, in the order they should be us
         AgentState
             The updated state of the agent with the selected columns and plot.
         """
-        state["columns"] = result.columns
+        state.columns = result.columns
         # create a plot dependent on the type of plot type passed earlier
-        # if state["plot_type"] == PlotType.SCATTER:
+        # if state.plot_type"] == PlotType.SCATTER:
         #     scatter_plot = ScatterPlot()
-        #     state["result"] = scatter_plot.generate(
-        #         state["query_result"],
-        #         state["columns"],
+        #     state.result"] = scatter_plot.generate(
+        #         state.query_result"],
+        #         state.columns"],
         #     )
-        # elif state["plot_type"] == PlotType.BAR:
+        # elif state.plot_type"] == PlotType.BAR:
         #     bar_plot = BarPlot()
-        #     state["result"] = bar_plot.generate(
-        #         state["query_result"],
-        #         state["columns"],
+        #     state.result"] = bar_plot.generate(
+        #         state.query_result"],
+        #         state.columns"],
         #     )
         logger.info(
-            f"Selected columns for scatter plot: {state['columns']}"
+            f"Selected columns for scatter plot: {state.columns}"
         )
         return state
 
@@ -310,9 +313,9 @@ class HumanResponseNode(ChatGPTNodeBase):
         str
             The system prompt to be used for the ChatOpenAI model.
         """
-        question = state["question"]
+        question = state.question
         error: str = state.get("error_occurred", False)
-        sql_query: str = state["sql_query"]
+        sql_query: str = state.sql_query
         logger.critical(f"Waiting for human response to the question: {question}")
         system = f"""You are an assistant that has helped provide a sql query to a user to help
         create a response to their question. The question is: {question}.
@@ -344,10 +347,10 @@ class HumanResponseNode(ChatGPTNodeBase):
         AgentState
             The updated state of the agent with the human response.
         """
-        state["response"] = result.response
+        state.response = result.response
         logger.info(
             "Received human response: {response}".format(
-                response=state["response"]
+                response=state.response
             )
         )
         return state

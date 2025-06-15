@@ -48,21 +48,21 @@ def read_csv_to_duckdb(conn: duckdb.DuckDBPyConnection, path_to_csv: str, table_
 def create_schema_from(conn: duckdb.DuckDBPyConnection, tables: list[str]) -> None:
     # schema = Schema()
     # get the schema with each of the table names
-    tables = {}
 
+    tables_for_schema: dict[str, Table] = {}
     for table in tables:
         # Fetch column info
         table_fields: list[list[str, str]] = conn.execute(
             f"PRAGMA table_info('memory.{table}')"
         ).fetchall()
 
-        # Format into a string
-        table_fields_dict = {}
+        # Format into VariableType
+        table_fields_dict: dict[str, VariableType] = {}
         for field in table_fields:
              table_fields_dict[field[1]] = getattr(VariableType, field[2])
-        tables[table] = table_fields_dict
+        tables_for_schema.update({table: Table(fields=table_fields_dict)})
 
-    return Schema(tables=tables)
+    return Schema(tables=tables_for_schema)
 
 def main() -> None:
     """
@@ -74,23 +74,17 @@ def main() -> None:
     insightly1 = Insightly()
     conn = duckdb.connect()
     tables: list[str] = read_csv_to_duckdb(conn, path_to_csv, "titanic")
-    create_schema_from(conn, tables)
+    schema: Schema = create_schema_from(conn, tables)
 
-    # insightly1.add_schema()
-
-    # insightly2 = Insightly()
-    # logger.debug(insightly1 is insightly2)
-    # logger.debug(Insightly().schema.to_string())
-
-    return
+    insightly1.add_schema(schema)
 
     _, app = create_and_compile_workflow()
 
     # Assuming you have already created and compiled your graph as 'app'
-    png_graph = app.get_graph().draw_mermaid_png()
-    # save png graph to file
-    with open("workflow_graph.png", "wb") as f:
-        f.write(png_graph)
+    # png_graph = app.get_graph().draw_mermaid_png()
+    # # save png graph to file
+    # with open("workflow_graph.png", "wb") as f:
+    #     f.write(png_graph)
 
     question = (
         "Can you plot the correlation between age and survival rate on the Titanic?"

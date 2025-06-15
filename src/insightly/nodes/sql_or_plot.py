@@ -69,7 +69,7 @@ class SQLOrPlotNode(ChatGPTNodeBase):
         str
             The system prompt to be used for the ChatOpenAI model.
         """
-        question = state["question"]
+        question = state.question
         logger.info(
             f"Checking if the question requires an SQL query or a plot: {question}"
         )
@@ -105,8 +105,8 @@ If the question is related to data visualization, choose one of the following pl
             The updated state of the agent with the SQL query or plot information.
         """
         if result.meant_as_query == QueryType.SQL:
-            state["plot_type"] = PlotType.NONE
+            state.plot_type = PlotType.NONE
         else:
-            state["plot_type"] = result.type_of_plot
-        logger.info(f"Determined type: {state['plot_type']}")
+            state.plot_type = result.type_of_plot
+        logger.info(f"Determined type: {state.plot_type}")
         return state
