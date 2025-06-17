@@ -9,11 +9,12 @@ import duckdb
 from loguru import logger
 from pydantic import BaseModel, Field
 from langchain_core.runnables.config import RunnableConfig
-# from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
+
 from langchain_core.prompts import ChatPromptTemplate
 
 T = TypeVar("T", bound=BaseModel)
+
 
 class PlotType(str, Enum):
     """Plot type for the visualization of the data.
@@ -167,8 +168,11 @@ class ChatGPTNodeBase(Node, ABC):
                 ("human", question),
             ]
         )
-        llm = ChatAnthropic(temperature=0, model='claude-3-opus-20240229')
-        structured_llm = llm.with_structured_output(self.OutputClass, method="function_calling")
+        llm = ChatOpenAI(
+            temperature=0,
+            model="gpt-4o",
+        )
+        structured_llm = llm.with_structured_output(self.OutputClass)
         generator = convert_prompt | structured_llm
         result = generator.invoke({})
         return result
@@ -211,8 +215,10 @@ class QueryType(str, Enum):
     SCATTER = "scatter"
     BAR = "bar"
 
+
 class VariableType(str, Enum):
     """DuckDB SQL types"""
+
     VARCHAR = "VARCHAR"
     BIGINT = "BIGINT"
     BIT = "BIT"
@@ -237,7 +243,6 @@ class VariableType(str, Enum):
     UUID = "UUID"
 
 
-
 class Table(BaseModel):
     """Database table information.
 
@@ -247,7 +252,10 @@ class Table(BaseModel):
         A list of column names in the table.
     """
 
-    fields: dict[str, VariableType] = Field(description="A list of column names in the table.")
+    fields: dict[str, VariableType] = Field(
+        description="A list of column names in the table."
+    )
+
 
 class Schema(BaseModel):
     """Database schema information.
@@ -276,3 +284,15 @@ class Schema(BaseModel):
             for column_name, column_type in table.fields.items():
                 schema_str += f"  - {column_name}: {column_type}\n"
         return schema_str
+
+
+class NewField(BaseModel):
+    table_name: str = Field(
+        description="The name of the table to which the new field will be added."
+    )
+    field_name: str = Field(
+        description="The name of the new field to be added to the table."
+    )
+    field_type: VariableType = Field(
+        description="The type of the new field to be added to the table."
+    )

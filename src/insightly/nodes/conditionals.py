@@ -37,7 +37,7 @@ class CheckErrorInSQLConditionalNode(ConditionalNode):
             logger.error(f"SQL Syntax Error: {e}")
             sql_syntax_correct = False
         if sql_syntax_correct:
-            logger.critical("SQL syntax is correct.")
+            logger.debug("SQL syntax is correct.")
             return State.GENERATE_SUCCESS_RESPONSE
         else:
             return State.REGENERATE_QUERY
@@ -57,6 +57,7 @@ class CheckNumberOfAttemptsConditionalNode(ConditionalNode):
                 "Please try again with a differently-phrased question."
             )
             return END
+
 
 class GetColumnsIfPlotConditionalNode(ConditionalNode):
     """Conditional node to check if the question is meant to be plotted."""

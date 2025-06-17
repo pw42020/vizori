@@ -1,13 +1,14 @@
 """SQL conversion node for Insightly agent"""
 
 from loguru import logger
+from typing import Dict
 
 import duckdb
 from pydantic import BaseModel, Field
 from pydantic import Field, BaseModel
 from langchain_core.runnables.config import RunnableConfig
 
-from insightly.classes import AgentState, ChatGPTNodeBase, T, VariableType
+from insightly.classes import AgentState, ChatGPTNodeBase, T, VariableType, NewField
 from insightly.plotting import BarPlot, ScatterPlot
 from insightly.insightly import Insightly
 
@@ -24,6 +25,7 @@ class ConvertToSQL(BaseModel):
     sql_query: str = Field(
         description="The SQL query generated from the natural language question."
     )
+
 
 class SQLConverterNode(ChatGPTNodeBase):
     """Class to convert natural language questions to SQL queries.
@@ -98,18 +100,11 @@ If any columns need to be added to the schema to answer the question, add them t
         state.sql_query = result.sql_query
         return state
 
-class NewTableFields(BaseModel):
-    fields: dict[str, VariableType] = Field(
-        description="New columns to add to the schema with their types."
-    )
 
 class NewFields(BaseModel):
-    additions: dict[str, NewTableFields] = Field(
-        description="Table name as the key and the new, added fields as the values."
+    additions: list[NewField] = Field(
+        description="List of new fields to be added to the schema."
     )
-    # additions: list[tuple[str, VariableType]] = Field(
-    #     description="New fields to add to the schema with their type as the second element of the tuple."
-    # )
 
 
 class NewFieldsNode(ChatGPTNodeBase):
@@ -150,9 +145,13 @@ And the SQL query:
 Available types to choose from are: {types}
 
 Provide only the new fields to be added to the schema without any explanations.
-""".format(schema=schema, sql_query=state.sql_query, types=", ".join([member.value for member in VariableType]))
+""".format(
+            schema=schema,
+            sql_query=state.sql_query,
+            types=", ".join([member.value for member in VariableType]),
+        )
         return system
-    
+
     def post_query(
         self, result: NewFields, state: AgentState, config: RunnableConfig
     ) -> AgentState:
@@ -175,10 +174,9 @@ Provide only the new fields to be added to the schema without any explanations.
         """
         print(f"RESULT: {result}")
         Insightly().add_to_schema(result.additions)
-        logger.info(
-            f"Added new fields to schema: {result.additions}"
-        )
+        logger.info(f"Added new fields to schema: {result.additions}")
         return state
+
 
 class Columns(BaseModel):
     """Class to represent the columns for a scatter plot.
@@ -269,9 +267,7 @@ Only return the names of the columns with no SQL, in the order they should be us
         #         state.query_result"],
         #         state.columns"],
         #     )
-        logger.info(
-            f"Selected columns for scatter plot: {state.columns}"
-        )
+        logger.info(f"Selected columns for scatter plot: {state.columns}")
         return state
 
 
@@ -314,9 +310,8 @@ class HumanResponseNode(ChatGPTNodeBase):
             The system prompt to be used for the ChatOpenAI model.
         """
         question = state.question
-        error: str = state.get("error_occurred", False)
+        error: str = state.error_occurred
         sql_query: str = state.sql_query
-        logger.critical(f"Waiting for human response to the question: {question}")
         system = f"""You are an assistant that has helped provide a sql query to a user to help
         create a response to their question. The question is: {question}.
         The sql query you provided is: {sql_query}.
@@ -349,8 +344,6 @@ class HumanResponseNode(ChatGPTNodeBase):
         """
         state.response = result.response
         logger.info(
-            "Received human response: {response}".format(
-                response=state.response
-            )
+            "Received human response: {response}".format(response=state.response)
         )
         return state

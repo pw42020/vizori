@@ -4,7 +4,8 @@ from typing import Optional
 
 import duckdb
 
-from insightly.classes import Schema, Table, VariableType
+from insightly.classes import Schema, Table, NewField
+
 
 class Singleton(type):
     _instances = {}
@@ -40,6 +41,34 @@ class Insightly(metaclass=Singleton):
 
     def add_schema(self, schema: Schema) -> None:
         self.schema = schema
+
+    def create_table_from_schema(self, table_name: str) -> None:
+        """
+        Creates a DuckDB table from the schema.
+
+        Parameters
+        ----------
+        table_name : str
+            The name of the table to create in DuckDB.
+
+        Returns
+        -------
+        None
+        """
+        if self.schema is None:
+            raise ValueError(
+                "Schema is not set. Please set the schema before creating a table."
+            )
+
+        # Create the table using the schema
+        fields = ", ".join(
+            f"{name} {var_type.value}"
+            for name, var_type in self.schema.tables[table_name].fields.items()
+        )
+        create_table_query = f"CREATE TABLE IF NOT EXISTS {table_name} ({fields})"
+        logger.debug(create_table_query)
+        self.conn.execute(create_table_query)
+        logger.info(f"Table '{table_name}' created with schema: {fields}")
 
     # def __new__(cls):
     #     """
@@ -201,7 +230,7 @@ class Insightly(metaclass=Singleton):
         self.conn.commit()
         return executed_query
 
-    def add_to_schema(self, additions: dict[str, dict[str, VariableType]]) -> None:
+    def add_to_schema(self, additions: list[NewField]) -> None:
         """
         Adds new columns to the schema.
 
@@ -215,10 +244,20 @@ class Insightly(metaclass=Singleton):
         -------
         None
         """
-        for table_name, new_columns in additions.items():
-            if table_name in self.schema.tables:
-                logger.info(f"Adding new columns to existing table: {table_name}")
-                self.schema.tables[table_name].fields.update(new_columns)
+        for new_field in additions:
+            if new_field.table_name in self.schema.tables:
+                logger.info(
+                    f"Adding new columns to existing table: {new_field.table_name}"
+                )
+                self.schema.tables[new_field.table_name].fields.update(
+                    {new_field.field_name: new_field.field_type}
+                )
             else:
-                logger.info(f"Adding new table to schema: {table_name}")
-                self.schema.tables.update({table_name: Table(fields=new_columns)})
+                logger.info(f"Adding new table to schema: {new_field.table_name}")
+                self.schema.tables.update(
+                    {
+                        new_field.table_name: Table(
+                            fields={new_field.field_name: new_field.field_type}
+                        )
+                    }
+                )
