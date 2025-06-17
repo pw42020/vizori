@@ -1556,6 +1556,20 @@ files = [
 ]
 
 [[package]]
+name = "jose"
+version = "1.0.0"
+description = "An implementation of the JOSE draft"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "jose-1.0.0.tar.gz", hash = "sha256:8436c3617cd94e1ba97828fbb1ce27c129f66c78fb855b4bb47e122b5f345fba"},
+]
+
+[package.dependencies]
+pycrypto = ">=2.6"
+
+[[package]]
 name = "jsonpatch"
 version = "1.33"
 description = "Apply JSON-Patches (RFC 6902)"
@@ -2885,6 +2899,17 @@ markers = "implementation_name == \"pypy\" or platform_python_implementation == 
 files = [
     {file = "pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"},
     {file = "pycparser-2.22.tar.gz", hash = "sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6"},
+]
+
+[[package]]
+name = "pycrypto"
+version = "2.6.1"
+description = "Cryptographic modules for Python."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pycrypto-2.6.1.tar.gz", hash = "sha256:f2ce1e989b272cfcb677616763e0a2e7ec659effa67a88aa92b3a65528f60a3c"},
 ]
 
 [[package]]
@@ -5019,4 +5044,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "bf88c1bdddc4bf826bed6e8f95495e468bd872e54926ef9bd65b83cd41bd2674"
+content-hash = "13cdb5e8e4890a1bad7739d7031f31525197177890ba12dd204b740183485313"
