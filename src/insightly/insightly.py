@@ -192,7 +192,7 @@ class Insightly(metaclass=Singleton):
     #     conn : duckdb.DuckDBPyConnection
     #         The DuckDB connection object.
     #     df : pd.DataFrame
-    #         The DataFrame to insert.
+    #         The DataFrame to insert. 
     #     table_name : str
     #         The name of the table to insert into.
 
