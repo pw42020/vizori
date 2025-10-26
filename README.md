@@ -1,4 +1,4 @@
-# Insightly
+# Vizori
 The app that allows Cs not experienced in Excel or Data Science to create beautiful plots and generate useful insights using AI.
 
 ### Diagram
